@@ -154,16 +154,16 @@ Infeasible
 
 The baseline heuristic uses the following schema fields:
 
-```yaml
-source_name:
-source_type:
-priority:
-activated:
-connected:
-capacity_ML:
-allocated_volume_ML:
-cost_AUD:
-status:
-```
+| Field | Description |
+|---|---|
+| source_name | Name of the selected water source |
+| source_type | Category/type of water source |
+| priority | Priority ranking assigned to the source |
+| activated | Indicates whether the source is available for allocation |
+| connected | Indicates whether the source can supply the demand location |
+| capacity_ML | Maximum available capacity of the source in ML |
+| allocated_volume_ML | Amount of water allocated from the source in ML |
+| cost_AUD | Cost associated with using the source in AUD (where applicable) |
+| status | Final allocation result: Feasible or Infeasible |
 
-These fields describe the selected source, allocation amount, availability conditions, and final feasibility status.
+These fields describe the selected source, allocation amount, availability conditions, cost information, and final feasibility status.
