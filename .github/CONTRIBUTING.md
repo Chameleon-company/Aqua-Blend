@@ -76,3 +76,8 @@ git push
 ## Do not
 
 - Do not make your own fork.
+- Do not push directly to `main`.
+- Do not open a PR against the original repo (not until the end of the trimester).
+- Do not force-push `main`.
+- Do not merge your own PR without 2 approvals.
+
