@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This document defines an **assumed fixed-priority heuristic** for allocating water sources to satisfy water demand. This baseline method is created for comparison purposes and is **not claimed to represent current operational practice** unless supported by evidence from a water operator or published source.
+This document defines an **assumed fixed-priority heuristic** for allocating water sources to satisfy water demand. This baseline method is created for comparison purposes and is **not claimed to represent current operational practice**. The source preference order used in this document is an illustrative assumption and may change when the official toy-model is confirmed.
 
 The heuristic uses a predefined preference order for selecting water sources and allocates supply sequentially until demand is met or available supply is exhausted.
 
@@ -14,7 +14,7 @@ The heuristic uses a predefined preference order for selecting water sources and
 
 ## 2. Fixed Source Preference Order
 
-The assumed source preference order is:
+The following source preference order is an **illustrative assumption used for this baseline example only**. It is intended for comparison purposes and may be updated once the official toy-model water source definitions are confirmed.
 
 | Priority | Source Type | Justification |
 |---|---|---|
@@ -32,14 +32,14 @@ This ordering is an **assumed heuristic preference order** and does not represen
 The heuristic follows these steps:
 
 1. Select the highest-priority active and connected water source.
-2. Allocate water from the selected source until:
-   - the remaining demand is satisfied, or
-   - the source capacity limit is reached.
+2. Allocate water from the selected source up to `sources[].capacity_ML` until:
+   - `demand_zones[].required_volume_ML` is satisfied, or
+   - `sources[].capacity_ML` is reached.
 3. If demand remains, move to the next available source in the preference order.
 4. Continue allocating from available sources until:
-   - total demand is satisfied, or
+   - `demand_zones[].required_volume_ML` is satisfied, or
    - no additional supply remains.
-5. If the total available supply cannot satisfy demand, mark the result as **infeasible**.
+5. If the total available supply cannot satisfy `demand_zones[].required_volume_ML`, mark the result as **Infeasible**.
 
 ---
 
@@ -51,8 +51,8 @@ The heuristic respects the following constraints:
 |---|---|
 | Source Activation | Only sources marked as active can provide water. |
 | Connectivity | A source must have a valid connection to the demand location before allocation. |
-| Capacity | Allocated volume cannot exceed the available capacity of a source. |
-| Demand Satisfaction | Allocation continues until demand is met or supply is exhausted. |
+| Capacity | Allocated volume cannot exceed `sources[].capacity_ML`. |
+| Demand Satisfaction | Allocation continues until `demand_zones[].required_volume_ML` is met or supply is exhausted. |
 
 ---
 
@@ -63,6 +63,8 @@ The heuristic respects the following constraints:
 ```
 Demand = 100 ML
 ```
+
+The following source names, activation status, connectivity values, and capacities are **illustrative assumptions** used only to demonstrate the baseline heuristic. They do **not** represent the confirmed toy-model dataset.
 
 ### Available Water Sources
 
@@ -117,7 +119,7 @@ Remaining demand:
 | Bore Water Supply | 10 |
 | Total | 100 |
 
-The total demand is satisfied, therefore the heuristic result is:
+The total demand is satisfied; therefore, the heuristic result is:
 
 ```
 Status: Feasible
