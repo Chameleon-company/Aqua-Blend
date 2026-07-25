@@ -1,5 +1,10 @@
 # Fixed-Priority Baseline Heuristic
 
+**Task:** Task 3 — Create Fixed-Priority Baseline Heuristic  
+**Member:** Naga Kowshik  
+**Project:** AquaBlend — Analysis & AI Team  
+**Version:** Sprint 1 Draft  
+
 ## 1. Overview
 
 This document defines an **assumed fixed-priority heuristic** for allocating water sources to satisfy water demand. This baseline method is created for comparison purposes and is **not claimed to represent current operational practice**. The source preference order used in this document is an illustrative assumption and may change when the official toy-model is confirmed.
