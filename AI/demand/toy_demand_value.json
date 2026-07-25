@@ -1,0 +1,101 @@
+{
+  "scenario_id": "toy_model_baseline",
+  "demand_zones": [
+    {
+      "zone_id": "Z1",
+      "zone_name": "Toy demand zone (representative Melbourne service area)",
+      "required_volume_ML": 50,
+      "time_basis": "per_day"
+    }
+  ],
+  "provenance": {
+    "task": "4. Research and select the toy-model demand value",
+    "owner": "Mansoor Shaik",
+    "units": "ML",
+    "final_value": {
+      "required_volume_ML_per_day": 50,
+      "required_volume_ML_per_year": 18250,
+      "time_basis": "per_day"
+    },
+    "derivation": {
+      "method": "per_capita_x_population",
+      "per_capita_L_per_person_per_day": 242,
+      "per_capita_basis": "total (residential + business + system losses)",
+      "per_capita_derivation": "1284 ML/day system mean / 5,300,000 people",
+      "assumed_population": 207000,
+      "raw_result_ML_per_day": 50.1,
+      "rounded_to_ML_per_day": 50,
+      "cross_check_fraction_of_system_demand_percent": 3.9,
+      "residential_per_capita_reference_L_per_person_per_day": 166
+    },
+    "original_published_figures": {
+      "system_mean_demand_ML_per_day": 1284,
+      "system_2025_mean_demand_ML_per_day": 1344,
+      "system_min_demand_ML_per_day": 775,
+      "system_peak_demand_ML_per_day": 2190,
+      "system_mean_demand_ML_per_year": 468660,
+      "residential_per_capita_L_per_person_per_day": 166,
+      "residential_per_capita_2024_25_L_per_person_per_day": 169
+    },
+    "capacity_calibration_rule": {
+      "no_single_source_meets_demand": "max(source daily-extractable capacity) < required_volume_ML",
+      "blend_is_feasible": "sum(source daily-extractable capacity) >= required_volume_ML"
+    },
+    "selected_toy_source_set": {
+      "status": "selected_pending_data_engineering_confirmation",
+      "note": "Large / mid / small trio. Meeting 50 ML/day requires at least two sources; O'Shannassy stays inactive in the baseline and only activates under stress, exercising the binary activation logic. Thomson and Upper Yarra were rejected as too large for a 50 ML/day toy; Barawon and Yashai127 are not real Melbourne Water reservoirs.",
+      "sources": [
+        {"source_name": "Sugarloaf", "full_supply_capacity_ML": 96253, "daily_extractable_cap_ML_per_day": 40, "role": "large"},
+        {"source_name": "Silvan", "full_supply_capacity_ML": 40445, "daily_extractable_cap_ML_per_day": 25, "role": "mid"},
+        {"source_name": "O'Shannassy", "full_supply_capacity_ML": 3123, "daily_extractable_cap_ML_per_day": 5, "role": "small"}
+      ],
+      "sum_daily_extractable_cap_ML_per_day": 70,
+      "max_single_daily_cap_ML_per_day": 40,
+      "max_single_share_percent": 57,
+      "calibration_passes": true,
+      "headroom_ML_per_day": 20
+    },
+    "sources": [
+      {
+        "name": "Melbourne Water Open Data Hub daily usage series",
+        "file": "melbourne_water_5_year_complete.csv",
+        "field": "daily_usage_ML",
+        "coverage": "2021-07-24 to 2026-07-24",
+        "date_recorded": "2026-07-24"
+      },
+      {
+        "name": "Melbourne's Annual Water Outlook 2026",
+        "publisher": "Melbourne Water",
+        "published": "2025-12",
+        "quarterly_update": "2026-03-01",
+        "url": "https://www.melbournewater.com.au/about/publications/water-outlook"
+      },
+      {
+        "name": "Melbourne Water daily reservoir history",
+        "file": "melbourne_reservoir_daily_history.csv",
+        "coverage": "2000-01-01 to 2026-07-24",
+        "note": "Per-reservoir full-supply capacity for the ten major Melbourne Water reservoirs; used to confirm real source capacities."
+      }
+    ],
+    "data_flags": {
+      "estimated_fields": [
+        "assumed_population",
+        "toy_source_daily_extractable_capacities"
+      ],
+      "notes": [
+        "required_volume_ML is based on total per-capita demand (residential + business + system losses), consistent with the total daily_usage_ML series.",
+        "assumed_population of 207000 is a toy-model input, not a measured demand zone.",
+        "Selected real source set: Sugarloaf, Silvan, O'Shannassy (see selected_toy_source_set).",
+        "Barawon and Yashai127 are not real Melbourne Water reservoirs; Thomson and Upper Yarra are too large for a 50 ML/day toy. All excluded.",
+        "Toy source daily-extractable capacities are conservative placeholders, to be confirmed with Data Engineering before Task 5 hand calculations."
+      ]
+    },
+    "coordination": {
+      "data_engineering_confirmation_required": true,
+      "items_to_confirm": [
+        "final three toy reservoir sources",
+        "daily-extractable capacity per source"
+      ]
+    }
+  }
+}
