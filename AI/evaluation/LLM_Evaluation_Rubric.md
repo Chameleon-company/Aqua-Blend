@@ -179,69 +179,9 @@ The final outcome is determined using both the Critical Pass/Fail Criteria and t
 | **FAIL** | One or more applicable critical criteria fail, **or** the total score is **below 18**. |
 
 This approach ensures that factual correctness and operational safety are always prioritised over writing quality. An explanation cannot receive a PASS unless it satisfies both the critical safety checks and the required quality standard.
-## 7. AquaBlend Reference Facts for the Current Scenario
 
-The following facts summarise the key optimisation results for the current AquaBlend reference scenario. They are provided to support consistent evaluation during rubric testing. Reviewers should still verify all information directly against the corresponding Results JSON.
 
-### Optimisation Summary
-
-| Item | Reference Value |
-|------|-----------------|
-| Scenario ID | `scenario_2026_07_17_001` |
-| Optimisation Status | `OPTIMAL` |
-| Total Demand | **500 ML required** |
-| Demand Supplied | **500 ML supplied (100%)** |
-| Objective | Minimise total operating cost while satisfying all operational and water-quality constraints |
-
-### Selected Water Sources
-
-| Source | Volume (ML) | Blend Percentage |
-|--------|------------:|-----------------:|
-| Silvan Reservoir | 210 | 42.0% |
-| Yarra River, Kew | 290 | 58.0% |
-
-### Unused Water Source
-
-| Source | Reason Not Selected |
-|--------|---------------------|
-| Groundwater Bore 1 | Higher estimated operating cost than the selected sources without sufficient water-quality benefit to justify selection. |
-
-### Binding Constraints
-
-The optimisation reached the following binding constraints:
-
-- `demand_satisfaction_zone_1`
-- `yarra_kew_capacity`
-
-These constraints directly influenced the final optimisation solution and should be reported accurately within any generated explanation.
-
-### Treated Water Quality
-
-| Parameter | Value | Status | Safety Margin |
-|-----------|------:|--------|--------------:|
-| pH | 7.4 | PASS | 21.4% |
-| Alkalinity | 52.3 mg/L CaCO₃ | PASS | 47.7% |
-| Turbidity | 2.1 NTU | PASS | 58.0% |
-
-### Safety Margin Summary
-
-- **Smallest safety margin:** pH (**21.4%**) — this represents the parameter operating closest to its regulatory limit and should normally be highlighted in the explanation.
-- **Largest safety margin:** Turbidity (**58.0%**).
-
-### Estimated Inputs and Data Limitations
-
-The Results JSON identifies several estimated inputs within `data_flags.estimated_fields[]`, including:
-
-- source operating costs;
-- selected water-quality measurements;
-- treatment capacities;
-- treatment dosing rates;
-- source capacities; and
-- estimated energy consumption.
-
-These estimated values should be clearly disclosed in any operator-facing explanation to ensure transparency and appropriate interpretation of the optimisation results.
-
-## 8. Example Evaluation: Convincing but Incorrect Explanation
+## 7. Example Evaluation: Convincing but Incorrect Explanation
 
 This example demonstrates how the evaluation rubric should be applied in practice. Although the explanation below is professionally written and appears technically convincing, it does not accurately represent the optimisation results contained in the AquaBlend Results JSON.
 
@@ -281,7 +221,7 @@ An explanation must accurately represent the optimisation results contained in t
 
 The evaluation rubric therefore prioritises factual correctness, completeness, transparency, and operational usefulness over writing style. Every important statement should be directly traceable to the Results JSON before an explanation can receive a PASS outcome.
 
-## 9. Evaluation Procedure and Independent Review Process
+## 8. Evaluation Procedure and Independent Review Process
 
 To ensure fair, objective, and repeatable assessment, every explanation should be evaluated using the same standard procedure.
 
@@ -356,50 +296,8 @@ Independent review improves the reliability and consistency of the evaluation pr
 
 Using multiple reviewers also reduces the likelihood of overlooking factual errors, missing optimisation details, or inconsistent interpretations of the Results JSON.
 
-## 10. Current Reference Explanation Assessment Summary
+## 9. Reference Explanation Testing
 
-The reference explanation included with the AquaBlend Results JSON was evaluated using this rubric to demonstrate how the evaluation framework is applied in practice.
+The reference explanation has been evaluated using this rubric.
 
-Overall, the reference explanation is well written, logically organised, and factually consistent with the optimisation results that it explicitly reports. It correctly identifies the selected water sources, explains why Groundwater Bore 1 was not selected, confirms that the optimisation status is **OPTIMAL**, and states that all treated-water quality parameters satisfy their required regulatory limits.
-
-Although the explanation is technically accurate, the evaluation identified several areas where additional information is required before it fully satisfies the requirements of this rubric.
-
-### Strengths
-
-The reference explanation successfully:
-
-- correctly identifies the selected and unused water sources;
-- accurately reports the optimisation outcome;
-- correctly explains the primary reason why Groundwater Bore 1 was not selected;
-- confirms that all treated-water quality parameters satisfy their regulatory limits;
-- avoids unsupported assumptions or invented optimisation results; and
-- remains internally consistent with the Results JSON.
-
-These strengths demonstrate that the explanation provides an accurate summary of the optimisation result.
-
-### Areas for Improvement
-
-The evaluation also identified several omissions that reduce the overall completeness and operational usefulness of the explanation.
-
-Specifically:
-
-- The explanation reports the **Yarra Kew capacity** constraint but does not mention the **demand_satisfaction_zone_1** binding constraint contained in the Results JSON.
-- The explanation highlights the **widest safety margin (turbidity)** instead of emphasising the **smallest safety margin (pH)**, which is the parameter operating closest to its regulatory limit and is generally more useful for operational monitoring.
-- Although the explanation acknowledges that some inputs are estimated, it does not provide a complete disclosure of all estimated fields identified in `data_flags.estimated_fields[]`.
-- The explanation does not explicitly report that the required demand of **500 ML** was completely satisfied by supplying **500 ML**, even though this information is available within the optimisation results.
-
-These omissions do not change the optimisation outcome, but they reduce the completeness and transparency of the explanation.
-
-### Overall Outcome
-
-**REVISE**
-
-The reference explanation is factually accurate and remains fully consistent with the AquaBlend Results JSON. However, it does not completely satisfy the completeness, transparency, and operational reporting requirements defined by this evaluation rubric.
-
-Before deployment as an operator-facing explanation, it should be revised to include the missing binding constraint, explicitly report demand satisfaction, highlight the smallest safety margin, and provide a more complete disclosure of estimated inputs and data limitations.
-
-### Conclusion
-
-This assessment demonstrates the purpose of the AquaBlend LLM Evaluation Rubric. The rubric evaluates explanations not only for factual correctness, but also for completeness, transparency, consistency, and operational usefulness.
-
-An explanation may therefore be technically accurate yet still require revision if important optimisation details are omitted. By applying both the Critical Pass/Fail Criteria and the Scored Criteria, the rubric provides a structured, repeatable, and objective method for assessing explanation quality across current and future AquaBlend scenarios.
+Detailed criterion scores, critical pass/fail results, reviewer comments and overall outcome are recorded in `LLM_Evaluation_Results.csv`.
