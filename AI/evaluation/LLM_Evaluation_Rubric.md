@@ -85,7 +85,7 @@ Measures whether statements, numerical values, optimisation decisions, statuses,
 | Score | Definition |
 |---|---|
 | **5** | All stated facts are correct, complete, and directly supported by the Results JSON. No unsupported information is included. |
-| **3** | Mostly accurate, with only minor wording issues or small non-critical omissions that do not change the interpretation of the optimisation result. |
+| **3** |  All critical facts required by C1–C9 are correct, but the explanation contains minor factual imprecision or omits supplementary information that is not required by the critical criteria and does not change the selected sources, unused sources, binding constraints, demand satisfaction, quality status, units, estimated-data disclosure, or operational safety conclusion. | 
 | **1** | Contains incorrect facts, invented information, unsupported claims, or contradictions with the Results JSON. |
 
 ### S2. Completeness
@@ -95,7 +95,7 @@ Measures whether the explanation covers all important optimisation outcomes requ
 | Score | Definition |
 |---|---|
 | **5** | Covers all important optimisation results, including selected sources, unused sources, binding constraints, demand satisfaction, water quality, safety margins, estimated fields, and operational limitations. |
-| **3** | Covers most important optimisation results but omits one or two useful details that do not significantly affect understanding. |
+| **3** | All information required by C1–C9 is present, but one or two supplementary details are omitted, such as additional diagnostic or sensitivity information, where the omission does not change the operator's understanding of the recommended solution, constraints, demand satisfaction, quality compliance, uncertainty, or safety. | 
 | **1** | Omits multiple important optimisation results or leaves out information needed for safe operational interpretation. |
 
 ### S3. Clarity
@@ -142,43 +142,64 @@ Measures whether every important statement can be directly traced to the Results
 
 ## 6. Score Calculation and Final Rating
 
-Each scored criterion contributes equally to the overall quality score.
+The six scored criteria provide a measure of explanation quality. However, the total score must not allow strong writing, clarity, or presentation to compensate for serious factual or JSON-consistency problems.
 
-**Total Score**
+### Total Score
 
-```
 S1 + S2 + S3 + S4 + S5 + S6
-```
 
-**Maximum Score:** **30**
+**Maximum Score:** 30
 
-**Average Score**
+### Average Score
 
-```
 Total Score ÷ 6
-```
 
 ### Quality Bands
 
 | Total Score | Average | Quality Level |
-|-------------|---------|---------------|
+|---|---:|---|
 | **27–30** | 4.50–5.00 | Excellent |
 | **23–26** | 3.83–4.49 | Good |
 | **18–22** | 3.00–3.82 | Acceptable with Revisions |
 | **12–17** | 2.00–2.99 | Poor |
 | **6–11** | 1.00–1.99 | Unacceptable |
 
-### Final Outcome Rule
+### Gating Rules
 
-The final outcome is determined using both the Critical Pass/Fail Criteria and the total quality score.
+The numerical score is applied only after the following mandatory checks.
+
+1. If any applicable critical criterion (C1–C9) is **FAIL**, the overall outcome is **FAIL**.
+
+2. If **S1 – Factual Accuracy = 1**, the overall outcome is **FAIL**, regardless of the total score.
+
+3. If **S6 – Consistency with the JSON = 1**, the overall outcome is **FAIL**, regardless of the total score.
+
+4. Only when all applicable critical criteria pass and both S1 and S6 are greater than 1 is the total score used to determine PASS or REVISE.
+
+### Final Outcome
 
 | Outcome | Requirement |
-|----------|-------------|
-| **PASS** | All applicable critical criteria pass **and** the total score is **23–30**. |
-| **REVISE** | All applicable critical criteria pass **and** the total score is **18–22**. |
-| **FAIL** | One or more applicable critical criteria fail, **or** the total score is **below 18**. |
+|---|---|
+| **PASS** | All applicable C1–C9 critical criteria pass, S1 > 1, S6 > 1, and total score is **23–30**. |
+| **REVISE** | All applicable C1–C9 critical criteria pass, S1 > 1, S6 > 1, and total score is **18–22**. |
+| **FAIL** | Any applicable C1–C9 criterion fails, **or S1 = 1, or S6 = 1**, or total score is **below 18**. |
 
-This approach ensures that factual correctness and operational safety are always prioritised over writing quality. An explanation cannot receive a PASS unless it satisfies both the critical safety checks and the required quality standard.
+### Decision Logic
+
+The evaluation can be represented using the following logic:
+
+IF any critical criterion C1–C9 fails:
+    Outcome = FAIL
+ELSE IF S1 == 1 OR S6 == 1:
+    Outcome = FAIL
+ELSE IF TotalScore >= 23:
+    Outcome = PASS
+ELSE IF TotalScore >= 18:
+    Outcome = REVISE
+ELSE:
+    Outcome = FAIL
+
+This gating approach prevents high scores for clarity, completeness, or presentation from compensating for severe factual inaccuracies or contradictions with the Results JSON.
 
 
 ## 7. Example Evaluation: Convincing but Incorrect Explanation
