@@ -37,14 +37,24 @@ This ordering is an **assumed heuristic preference order** and does not represen
 The heuristic follows these steps:
 
 1. Select the highest-priority active and connected water source.
-2. Allocate water from the selected source up to `sources[].capacity_ML` until:
+
+2. Validate the maximum daily withdrawal limit of the selected source before allocation.
+
+3. Allocate water from the selected source up to the lower value between:
+   - available source capacity (`sources[].capacity_ML`), and
+   - maximum daily withdrawal limit (`sources[].max_daily_withdrawal_ML`).
+
+4. Allocation continues until:
    - `demand_zones[].required_volume_ML` is satisfied, or
-   - `sources[].capacity_ML` is reached.
-3. If demand remains, move to the next available source in the preference order.
-4. Continue allocating from available sources until:
+   - the validated daily withdrawal limit is reached.
+
+5. If demand remains, move to the next available source in the preference order.
+
+6. Continue allocating from available sources until:
    - `demand_zones[].required_volume_ML` is satisfied, or
    - no additional supply remains.
-5. If the total available supply cannot satisfy `demand_zones[].required_volume_ML`, mark the result as **Infeasible**.
+
+7. If the total available supply cannot satisfy `demand_zones[].required_volume_ML`, mark the result as **Infeasible**.
 
 ---
 
@@ -56,7 +66,7 @@ The heuristic respects the following constraints:
 |---|---|
 | Source Activation | Only sources marked as active can provide water. |
 | Connectivity | A source must have a valid connection to the demand location before allocation. |
-| Capacity | Allocated volume cannot exceed `sources[].capacity_ML`. |
+| Capacity and Withdrawal Limit | Allocated volume cannot exceed `sources[].capacity_ML` or the validated maximum daily withdrawal limit `sources[].max_daily_withdrawal_ML`. |
 | Demand Satisfaction | Allocation continues until `demand_zones[].required_volume_ML` is met or supply is exhausted. |
 
 ---
@@ -69,84 +79,88 @@ The heuristic respects the following constraints:
 Demand = 100 ML
 ```
 
-The following source names, activation status, connectivity values, and capacities are **illustrative assumptions** used only to demonstrate the baseline heuristic. They do **not** represent the confirmed toy-model dataset.
+The following source names, activation status, connectivity values, capacities, and withdrawal limits are **illustrative assumptions** used only to demonstrate the baseline heuristic. They do not represent the confirmed toy-model dataset.
 
 ### Available Water Sources
 
-| Source | Source Type | Capacity (ML) | Activated | Connected |
-|---|---|---:|---|---|
-| Lake Reservoir | Surface Water Reservoir | 60 | Yes | Yes |
-| Recycled Water Plant | Recycled Water Source | 30 | Yes | Yes |
-| Bore Water Supply | Groundwater Source | 40 | Yes | Yes |
+| Source | Source Type | Capacity (ML) | Max Daily Withdrawal (ML) | Activated | Connected |
+|---|---|---:|---:|---|---|
+| Lake Reservoir | Surface Water Reservoir | 60 | 40 | Yes | Yes |
+| Recycled Water Plant | Recycled Water Source | 30 | 30 | Yes | Yes |
+| Bore Water Supply | Groundwater Source | 40 | 20 | Yes | Yes |
 
 ### Allocation Process
 
 **Step 1: Surface Water Reservoir**
 
 - Available capacity = 60 ML
-- Demand remaining = 100 ML
-- Allocate 60 ML
+- Maximum daily withdrawal = 40 ML
+- Allocate 40 ML
 
 Remaining demand:
 
 ```
-100 - 60 = 40 ML
+100 - 40 = 60 ML
 ```
 
 **Step 2: Recycled Water Source**
 
 - Available capacity = 30 ML
+- Maximum daily withdrawal = 30 ML
 - Allocate 30 ML
 
 Remaining demand:
 
 ```
-40 - 30 = 10 ML
+60 - 30 = 30 ML
 ```
 
 **Step 3: Groundwater Source**
 
 - Available capacity = 40 ML
-- Allocate 10 ML
+- Maximum daily withdrawal = 20 ML
+- Allocate 20 ML
 
 Remaining demand:
 
 ```
-10 - 10 = 0 ML
+30 - 20 = 10 ML
 ```
+
+No additional validated daily withdrawal capacity is available.
 
 ### Final Allocation
 
 | Source | Allocated Volume (ML) |
 |---|---:|
-| Lake Reservoir | 60 |
+| Lake Reservoir | 40 |
 | Recycled Water Plant | 30 |
-| Bore Water Supply | 10 |
-| Total | 100 |
+| Bore Water Supply | 20 |
+| Total | 90 |
 
-The total demand is satisfied; therefore, the heuristic result is:
+The total demand cannot be satisfied due to daily withdrawal limits; therefore, the heuristic result is:
 
 ```
-Status: Feasible
+Status: Infeasible
 ```
 
 ---
 
 ## 6. Infeasibility Handling
 
-If all active and connected water sources are exhausted before meeting demand, the heuristic returns:
+If all active and connected water sources reach their validated maximum daily withdrawal limits before meeting demand, the heuristic returns:
 
 ```
 Status: Infeasible
 
-Reason: Available water supply is insufficient to satisfy total demand.
+Reason: Available daily withdrawal capacity is insufficient to satisfy total demand.
 ```
 
 Example:
 
 ```
 Demand = 200 ML
-Available Supply = 150 ML
+Available Daily Withdrawal = 150 ML
 
 Result:
 Infeasible
@@ -166,8 +180,9 @@ The baseline heuristic uses the following schema fields:
 | activated | Indicates whether the source is available for allocation |
 | connected | Indicates whether the source can supply the demand location |
 | capacity_ML | Maximum available capacity of the source in ML |
+| max_daily_withdrawal_ML | Maximum volume that can be withdrawn from the source per day in ML |
 | allocated_volume_ML | Amount of water allocated from the source in ML |
 | cost_AUD | Cost associated with using the source in AUD (where applicable) |
 | status | Final allocation result: Feasible or Infeasible |
 
-These fields describe the selected source, allocation amount, availability conditions, cost information, and final feasibility status.
+These fields describe the selected source, allocation amount, availability conditions, withdrawal limits, cost information, and final feasibility status.
