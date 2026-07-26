@@ -28,6 +28,7 @@ Reviewer composition must be one of the following:
 - [ ] Planner task link is included and correct
 - [ ] A new branch was created for the task (from `master`)
 - [ ] Each task is submitted as its own separate PR
+- [ ] Branch name follows the naming convention documented in `AI/README.md`
 
 ### 2. Files Changed
 - [ ] Files are named correctly
