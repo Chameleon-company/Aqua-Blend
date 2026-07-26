@@ -1,0 +1,434 @@
+==============================================================================
+
+SAMPLE 1: Reference scenario — exactly what the README's 'how to run it' command produces
+
+To reproduce this exact sample yourself, run:
+
+python3 -c "
+import json
+from test_json_explainer import REFERENCE_JSON
+with open('try_it.json', 'w') as f:
+    json.dump(REFERENCE_JSON, f, indent=2)
+"
+python3 json_explainer.py try_it.json
+
+==============================================================================
+
+## Selected & Unused Sources
+
+Yarra River, Kew supplied 58.0% of the blend (290 ML) at $235.00 AUD/ML (estimated), because it is the cheapest available source and was used at its full available capacity.
+
+Silvan Reservoir supplied 42.0% of the blend (210 ML) at $400.00 AUD/ML (estimated), because it supplemented the blend, at the second lowest cost, to meet remaining demand after lower-cost sources reached capacity.
+
+Groundwater Bore 1 was not selected because Higher cost per ML than the selected sources with no quality benefit large enough to justify inclusion for this demand level.
+
+## Binding Constraints
+
+The solution was limited by the water demand for zone_1: the full 500 ML needed by zone_1 had to be delivered, leaving no room to supply any less.
+
+The solution was limited by the available capacity of Yarra River, Kew: Yarra River, Kew was drawn up to the most its capacity allows (290 ML), so any additional water had to come from other sources.
+
+## Water Quality & Safety Margins
+
+All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+
+The widest margin was on turbidity at 58.0%.
+
+Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+
+## Sensitivity to Key Assumptions
+
+This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+
+This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+
+## Estimated Fields / Data Limitations
+
+The following fields in this result are estimated rather than measured, and should be treated as provisional:
+- cost_per_ML (all sources)
+- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
+- treatment facility capacity and dosing rates (placeholder pending real data)
+- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
+- energy estimate (placeholder formula pending real pumping and treatment energy data)
+
+## Summary
+
+This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
+
+
+==============================================================================
+
+SAMPLE 2: Infeasible scenario — status forced to INFEASIBLE
+
+To reproduce this exact sample yourself, run:
+
+python3 -c "
+import json
+from test_json_explainer import REFERENCE_JSON
+data = REFERENCE_JSON.copy()
+data['status'] = 'INFEASIBLE'
+with open('try_it.json', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+python3 json_explainer.py try_it.json
+
+==============================================================================
+
+No blend could be recommended for this scenario (INFEASIBLE).
+
+
+==============================================================================
+
+SAMPLE 3: Zero demand / zero sources required
+
+To reproduce this exact sample yourself, run:
+
+python3 -c "
+import json
+from test_json_explainer import REFERENCE_JSON
+data = REFERENCE_JSON.copy()
+data['sources'] = {'selected': [], 'unused': []}
+data['binding_constraints_summary'] = []
+data['demand_zones'] = [{'zone_id': 'zone_1', 'required_volume_ML': 0, 'volume_supplied_ML': 0}]
+with open('try_it.json', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+python3 json_explainer.py try_it.json
+
+==============================================================================
+
+## Selected & Unused Sources
+
+No sources were required for this scenario.
+
+## Binding Constraints
+
+No constraint was binding; the solution stayed within every limit.
+
+## Water Quality & Safety Margins
+
+All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+
+The widest margin was on turbidity at 58.0%.
+
+Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+
+## Sensitivity to Key Assumptions
+
+This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+
+This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+
+## Estimated Fields / Data Limitations
+
+The following fields in this result are estimated rather than measured, and should be treated as provisional:
+- cost_per_ML (all sources)
+- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
+- treatment facility capacity and dosing rates (placeholder pending real data)
+- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
+- energy estimate (placeholder formula pending real pumping and treatment energy data)
+
+## Summary
+
+This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 0 source(s) selected, 0 unused. Water quality after treatment: PASS.
+
+
+==============================================================================
+
+SAMPLE 4: Water-quality violation — turbidity pushed into FAIL
+
+To reproduce this exact sample yourself, run:
+
+python3 -c "
+import json
+from test_json_explainer import REFERENCE_JSON
+data = REFERENCE_JSON.copy()
+data['water_quality']['after_treatment']['turbidity']['status'] = 'FAIL'
+data['water_quality']['after_treatment']['turbidity']['safety_margin_percent'] = -4.5
+data['water_quality']['after_treatment']['turbidity']['value'] = 5.4
+with open('try_it.json', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+python3 json_explainer.py try_it.json
+
+==============================================================================
+
+## Selected & Unused Sources
+
+Yarra River, Kew supplied 58.0% of the blend (290 ML) at $235.00 AUD/ML (estimated), because it is the cheapest available source and was used at its full available capacity.
+
+Silvan Reservoir supplied 42.0% of the blend (210 ML) at $400.00 AUD/ML (estimated), because it supplemented the blend, at the second lowest cost, to meet remaining demand after lower-cost sources reached capacity.
+
+Groundwater Bore 1 was not selected because Higher cost per ML than the selected sources with no quality benefit large enough to justify inclusion for this demand level.
+
+## Binding Constraints
+
+The solution was limited by the water demand for zone_1: the full 500 ML needed by zone_1 had to be delivered, leaving no room to supply any less.
+
+The solution was limited by the available capacity of Yarra River, Kew: Yarra River, Kew was drawn up to the most its capacity allows (290 ML), so any additional water had to come from other sources.
+
+## Water Quality & Safety Margins
+
+Not all quality parameters passed. turbidity breached its allowed range: 5.4 NTU against a permitted 0-5.0 NTU (safety margin -4.5%). This is treated as a violation and must be resolved before the blend is acceptable.
+
+Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+
+## Sensitivity to Key Assumptions
+
+This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+
+This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+
+## Estimated Fields / Data Limitations
+
+The following fields in this result are estimated rather than measured, and should be treated as provisional:
+- cost_per_ML (all sources)
+- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
+- treatment facility capacity and dosing rates (placeholder pending real data)
+- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
+- energy estimate (placeholder formula pending real pumping and treatment energy data)
+
+## Summary
+
+This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: FAIL.
+
+
+==============================================================================
+
+SAMPLE 5: Missing cost_per_ML on a selected source, plus different binding constraints
+
+To reproduce this exact sample yourself, run:
+
+python3 -c "
+import json
+from test_json_explainer import REFERENCE_JSON
+data = REFERENCE_JSON.copy()
+del data['sources']['selected'][0]['cost_per_ML']
+data['binding_constraints_summary'] = ['yarra_kew_activation', 'facility_1_batch_capacity']
+with open('try_it.json', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+python3 json_explainer.py try_it.json
+
+==============================================================================
+
+## Selected & Unused Sources
+
+Yarra River, Kew supplied 58.0% of the blend (290 ML) at $235.00 AUD/ML (estimated), because it is the cheapest available source for this scenario, with capacity remaining.
+
+Silvan Reservoir supplied 42.0% of the blend (210 ML), because it was included in the optimal blend to help meet demand at minimum total cost.
+
+Groundwater Bore 1 was not selected because Higher cost per ML than the selected sources with no quality benefit large enough to justify inclusion for this demand level.
+
+## Binding Constraints
+
+The solution was limited by whether Yarra River, Kew is switched on: Yarra River, Kew had to be switched fully on rather than partly used, and that is what allowed it into the blend.
+
+The solution was limited by the processing capacity of Treatment Facility 1: Treatment Facility 1 was already treating as much as it can handle (500 ML across 5 batches), leaving no spare capacity.
+
+## Water Quality & Safety Margins
+
+All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+
+The widest margin was on turbidity at 58.0%.
+
+Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+
+## Sensitivity to Key Assumptions
+
+This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+
+This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+
+## Estimated Fields / Data Limitations
+
+The following fields in this result are estimated rather than measured, and should be treated as provisional:
+- cost_per_ML (all sources)
+- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
+- treatment facility capacity and dosing rates (placeholder pending real data)
+- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
+- energy estimate (placeholder formula pending real pumping and treatment energy data)
+
+## Summary
+
+This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
+
+
+==============================================================================
+
+SAMPLE 6: Missing water-quality parameter — alkalinity not reported
+
+To reproduce this exact sample yourself, run:
+
+python3 -c "
+import json
+from test_json_explainer import REFERENCE_JSON
+data = REFERENCE_JSON.copy()
+del data['water_quality']['after_treatment']['alkalinity']
+with open('try_it.json', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+python3 json_explainer.py try_it.json
+
+==============================================================================
+
+## Selected & Unused Sources
+
+Yarra River, Kew supplied 58.0% of the blend (290 ML) at $235.00 AUD/ML (estimated), because it is the cheapest available source and was used at its full available capacity.
+
+Silvan Reservoir supplied 42.0% of the blend (210 ML) at $400.00 AUD/ML (estimated), because it supplemented the blend, at the second lowest cost, to meet remaining demand after lower-cost sources reached capacity.
+
+Groundwater Bore 1 was not selected because Higher cost per ML than the selected sources with no quality benefit large enough to justify inclusion for this demand level.
+
+## Binding Constraints
+
+The solution was limited by the water demand for zone_1: the full 500 ML needed by zone_1 had to be delivered, leaving no room to supply any less.
+
+The solution was limited by the available capacity of Yarra River, Kew: Yarra River, Kew was drawn up to the most its capacity allows (290 ML), so any additional water had to come from other sources.
+
+## Water Quality & Safety Margins
+
+alkalinity was not reported in the results and could not be assessed.
+
+All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+
+The widest margin was on turbidity at 58.0%.
+
+Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+
+## Sensitivity to Key Assumptions
+
+This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+
+This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+
+## Estimated Fields / Data Limitations
+
+The following fields in this result are estimated rather than measured, and should be treated as provisional:
+- cost_per_ML (all sources)
+- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
+- treatment facility capacity and dosing rates (placeholder pending real data)
+- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
+- energy estimate (placeholder formula pending real pumping and treatment energy data)
+
+## Summary
+
+This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
+
+
+==============================================================================
+
+SAMPLE 7: No sensitivity information reported
+
+To reproduce this exact sample yourself, run:
+
+python3 -c "
+import json
+from test_json_explainer import REFERENCE_JSON
+data = REFERENCE_JSON.copy()
+del data['sensitivity_to_key_assumptions']
+with open('try_it.json', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+python3 json_explainer.py try_it.json
+
+==============================================================================
+
+## Selected & Unused Sources
+
+Yarra River, Kew supplied 58.0% of the blend (290 ML) at $235.00 AUD/ML (estimated), because it is the cheapest available source and was used at its full available capacity.
+
+Silvan Reservoir supplied 42.0% of the blend (210 ML) at $400.00 AUD/ML (estimated), because it supplemented the blend, at the second lowest cost, to meet remaining demand after lower-cost sources reached capacity.
+
+Groundwater Bore 1 was not selected because Higher cost per ML than the selected sources with no quality benefit large enough to justify inclusion for this demand level.
+
+## Binding Constraints
+
+The solution was limited by the water demand for zone_1: the full 500 ML needed by zone_1 had to be delivered, leaving no room to supply any less.
+
+The solution was limited by the available capacity of Yarra River, Kew: Yarra River, Kew was drawn up to the most its capacity allows (290 ML), so any additional water had to come from other sources.
+
+## Water Quality & Safety Margins
+
+All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+
+The widest margin was on turbidity at 58.0%.
+
+Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+
+## Sensitivity to Key Assumptions
+
+No sensitivity information was reported for this scenario.
+
+## Estimated Fields / Data Limitations
+
+The following fields in this result are estimated rather than measured, and should be treated as provisional:
+- cost_per_ML (all sources)
+- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
+- treatment facility capacity and dosing rates (placeholder pending real data)
+- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
+- energy estimate (placeholder formula pending real pumping and treatment energy data)
+
+## Summary
+
+This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
+
+
+==============================================================================
+
+SAMPLE 8: objective field missing entirely — cost shows as 'not reported'
+
+To reproduce this exact sample yourself, run:
+
+python3 -c "
+import json
+from test_json_explainer import REFERENCE_JSON
+data = REFERENCE_JSON.copy()
+del data['objective']
+with open('try_it.json', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+python3 json_explainer.py try_it.json
+
+==============================================================================
+
+## Selected & Unused Sources
+
+Yarra River, Kew supplied 58.0% of the blend (290 ML) at $235.00/ML (estimated), because it is the cheapest available source and was used at its full available capacity.
+
+Silvan Reservoir supplied 42.0% of the blend (210 ML) at $400.00/ML (estimated), because it supplemented the blend, at the second lowest cost, to meet remaining demand after lower-cost sources reached capacity.
+
+Groundwater Bore 1 was not selected because Higher cost per ML than the selected sources with no quality benefit large enough to justify inclusion for this demand level.
+
+## Binding Constraints
+
+The solution was limited by the water demand for zone_1: the full 500 ML needed by zone_1 had to be delivered, leaving no room to supply any less.
+
+The solution was limited by the available capacity of Yarra River, Kew: Yarra River, Kew was drawn up to the most its capacity allows (290 ML), so any additional water had to come from other sources.
+
+## Water Quality & Safety Margins
+
+All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+
+The widest margin was on turbidity at 58.0%.
+
+Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+
+## Sensitivity to Key Assumptions
+
+This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+
+This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+
+## Estimated Fields / Data Limitations
+
+The following fields in this result are estimated rather than measured, and should be treated as provisional:
+- cost_per_ML (all sources)
+- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
+- treatment facility capacity and dosing rates (placeholder pending real data)
+- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
+- energy estimate (placeholder formula pending real pumping and treatment energy data)
+
+## Summary
+
+This scenario is OPTIMAL. Total cost: not reported. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
