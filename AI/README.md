@@ -74,14 +74,23 @@ scenario_dry_year.json
 5. Open a pull request into the team fork's main working branch.
 6. Resolve review comments before merging.
 
-Example branch names:
+### Branch Naming Convention
 
-```text
-task-01-equal-blend
-task-04-demand-research
-task-10-normal-dry-scenarios
-task-12-kpi-set
-```
+All task branches must follow this format:
+
+`task-<task-number>-<short-description>`
+
+Rules:
+- Use lowercase letters
+- Separate words using hyphens
+- Include the Planner task number
+- Use one branch for one task
+
+Examples:
+
+`task-01-equal-blend`
+`task-04-demand-research`
+`task-10-kpi-calculations`
 
 Example commit messages:
 
