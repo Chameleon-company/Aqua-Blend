@@ -49,9 +49,29 @@ It is possible to have a solution without any binding contraints. Said different
 No constraint was binding; the solution stayed within every limit.
 ```
 
+## Missing field — name matches, but a field it needs is absent
+
+Every field interpolated above is required by the json contract, so an entry whose source, facility or parameter is missing one of them is the same kind of misalignment as the Unknown case below — it is just detectable at the field level rather than the name level. Raise it the same way, but still produce the best sentence the available data supports rather than dropping the constraint from the output.
+
+Whether a field can be dropped depends on what it carries.
+
+**Identity fields** (`source_name`, `facility_name`, `zone_id`, `parameter`) name the thing being explained, so the sentence does not survive without them. Fall back to the matching `source_id` / `facility_id`. If that is missing too, nothing is left to identify and the Unknown wording applies.
+
+**Detail fields** (all volumes, batch counts, limits and units) only qualify the sentence. Drop the clause carrying them and keep the rest. If one clause holds several and only some are missing, drop the whole clause rather than rendering a half-filled one.
+
+For example, source-capacity with `volume_drawn_ML` absent:
+```
+{binding_constraint}         = the available capacity of {sources.selected[].source_name}
+{plain_language_explanation} = {sources.selected[].source_name} was drawn up to the most its capacity allows, so any additional water had to come from other sources
+```
+
+The same rule elsewhere: demand becomes `the full volume needed by {demand_zones[].zone_id} had to be delivered, leaving no room to supply any less`; treatment-capacity becomes `{treatment_facilities.active[].facility_name} was already treating as much as it can handle, leaving no spare capacity`; water-quality becomes `{parameter} sat right at the edge of its safe range, so the blend could not be pushed any further`.
+
 ## Unknown — name matches none of the above
 
 This is used for binding constraints that are not defined in the json contract. In other words, this raise errors when the json contract does not align with the pre-defined contraints and variables.
+
+This covers the constraint *name* only. A name that does match a section above but is missing a field that section needs is the Missing-field case, not this one.
 
 ```
 The solution was limited by {binding_constraint} (no plain-language mapping available).
