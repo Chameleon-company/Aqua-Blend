@@ -1,10 +1,15 @@
 # Demand Research: Toy-Model Demand Value
 
-**Task:** 4. Research and select the toy-model demand value
-**Owner:** Mansoor Shaik
-**Sprint:** Analysis and AI, Sprint 1
-**Deliverables:** `Demand_Research.md`, `toy_demand_value.json`
-**Units:** Volume in ML. Time period stated for every figure.
+- **Task:** 4. Research and select the toy-model demand value
+
+- **Owner:** Mansoor Shaik
+
+- **Sprint:** Analysis and AI, Sprint 1
+
+- **Deliverables:** `Demand_Research.md`, `toy_demand_value.json`
+
+- **Units:** Volume in ML. Time period stated for every figure.
+
 
 ---
 
@@ -90,7 +95,9 @@ This matches the configuration, which calls for a single demand zone sized so no
 The toy demand zone is defined as one representative Melbourne service area. Its demand is built from Melbourne's total per-capita use so the scaling is transparent and consistent with the total-demand basis of the source data (residential plus business plus system losses).
 
 - Total per-capita rate: 1,284 ML/day / 5,300,000 people = about 242 L/person/day. This is the whole-of-system rate and, unlike the residential-only figure of 166 L/person/day, it already includes non-residential (business and industrial) demand and system losses, which is what a demand zone must actually be supplied.
-- Assumed served population: about 207,000 residents. This is the size of one mid-sized Melbourne service zone and is recorded as an assumed toy-model input, not a measured figure.
+
+- Assumed served population: about 207,000 residents. This is an assumed toy-model input, not a measured figure. Section 4.3 sets out why this size was chosen.
+
 
 Calculation:
 
@@ -104,9 +111,37 @@ Rounded to a clean value for hand validation (Task 5 must check this by hand):
 
 **Final toy-model demand = 50 ML/day.**
 
-This value also falls inside the feasible window set by the toy source capacities: above the largest single source cap of 40 ML/day (so no single reservoir meets demand alone) and below the three-source total of 70 ML/day (so the blend is feasible), per Section 6. The demand-side derivation and the supply-side calibration therefore agree on 50 ML/day.
+### 4.3 Justification for the assumed population of 207,000
 
-### 4.3 Cross-check: fraction of system demand
+Because the assumed population directly produces the final 50 ML/day value, the choice is justified on two independent grounds: it must correspond to a real, recognisable unit of Melbourne's water system, and it must produce a demand that makes the toy a genuine blending problem.
+
+**Ground 1: it matches the size of a real mid-sized Melbourne service area.**
+
+Melbourne's metropolitan area is made up of 31 local government areas serving a total population of about 5.3 million, giving an average of roughly 171,000 residents per LGA. A demand zone of about 207,000 is therefore the size of one real mid-sized metropolitan council area, which is the natural smallest unit at which bulk water demand is meaningfully aggregated. Real comparators at 30 June 2024:
+
+| Comparator LGA | Estimated resident population (2024) |
+|---|---|
+| City of Monash | 209,268 |
+| City of Whitehorse | 183,462 |
+| Metropolitan average (5.3 million / 31 LGAs) | about 171,000 |
+
+The assumed 207,000 sits within about 1 percent of the City of Monash, an established mid-sized eastern-suburbs council area supplied from the same Yarra and Silvan system that the toy's sources sit on. The toy zone is therefore not an arbitrary number: it is the population of one plausible real service area, and no claim is made that it is the measured population of any specific zone.
+
+**Ground 2: it lands the demand inside the window that makes the toy non-trivial.**
+
+The toy is only useful if demand is above the largest single source cap (so no reservoir can meet it alone) and below the sum of the caps (so a blend is feasible). Against the provisional caps in Section 6, that window is 40 to 70 ML/day, which at 242 L/person/day corresponds to a population between about 165,000 and about 289,000. A value of 207,000 sits close to the middle of that band rather than at either edge, so the toy keeps headroom on both sides and does not become infeasible or trivially solvable if the caps are revised slightly.
+
+Sensitivity of the final value to this assumption:
+
+| Assumed population | Resulting demand (ML/day) | Toy still valid? |
+|---|---|---|
+| 165,000 | 40 | No, equals the largest single cap |
+| 207,000 (adopted) | 50 | Yes, mid-window |
+| 289,000 | 70 | No, exhausts total supply |
+
+The two grounds agree. A real mid-sized Melbourne council area of roughly 200,000 people is also, at Melbourne's total per-capita rate, exactly the population that produces a mid-window toy demand. The value is then rounded from 50.1 to 50 ML/day for hand validation.
+
+### 4.4 Cross-check: fraction of system demand
 
 50 ML/day is 50 / 1,284 = about 3.9 percent of Melbourne's mean system demand. A single sub-zone drawing roughly one twenty-fifth of the total system demand from a three-reservoir subset is a reasonable proportion for a proof-of-concept fragment of a ten-reservoir system. The per-capita method and the fraction method agree that a value in the tens of ML/day is the correct order of magnitude.
 
@@ -124,46 +159,57 @@ This value also falls inside the feasible window set by the toy source capacitie
 
 ---
 
-## 6. Reasonableness against source capacities
+## 6. Reasonableness against provisional source capacities
 
-The configuration states that source capacity is the daily extractable volume (safe yield or maximum daily withdrawal), not total storage, and that a conservative fraction of usable volume is used as a documented placeholder until real withdrawal-rate data is sourced.
+**Status of this section: provisional.** The per-source daily-extractable capacities used below are assumed model inputs created for this task. They have not been confirmed by Data Engineering or by the Optimisation lead, and they are not published Melbourne Water figures. The full-supply capacities are real and sourced; only the daily-extractable caps are assumed. The calibration result in Section 6.2 therefore holds against these provisional inputs only, and must be re-run once real safe-yield or maximum-daily-withdrawal values are supplied (Section 7).
 
 ### 6.1 Calibration rule the demand must satisfy
 
 1. No single source daily-extractable capacity is greater than or equal to demand (so no single reservoir meets demand alone).
 2. The sum of connected source daily-extractable capacities is greater than or equal to demand (so the blend is feasible).
 
-### 6.2 Confirmed check using the real per-reservoir dataset
+### 6.2 Provisional check using the real per-reservoir dataset
 
 The file `melbourne_reservoir_daily_history.csv` (Melbourne Water daily reservoir history, 1 January 2000 to 24 July 2026) gives the real full-supply capacity of every Melbourne Water major reservoir. The ten reservoirs it contains are Thomson, Cardinia, Upper Yarra, Sugarloaf, Silvan, Tarago, Yan Yean, Greenvale, Maroondah, and O'Shannassy. This is the authoritative source list for the toy model.
 
 Selected toy source set (three real reservoirs that vary in usable volume, all drawn from the proposal's case-study list):
 
-| Toy source | Full-supply capacity (ML) | Conservative daily-extractable cap (ML/day) | Role |
+| Toy source | Full-supply capacity (ML) | Provisional daily-extractable cap (ML/day), assumed | Role |
 |---|---|---|---|
-| Sugarloaf | 96,253 | 40 | large / primary |
-| Silvan | 40,445 | 25 | mid |
-| O'Shannassy | 3,123 | 5 | small / backup |
-| Total | | 70 | |
+| Sugarloaf | 96,253 | 40 (provisional) | large / primary |
+| Silvan | 40,445 | 25 (provisional) | mid |
+| O'Shannassy | 3,123 | 5 (provisional) | small / backup |
+| Total | | 70 (provisional) | |
 
-- Largest single daily cap = 40 ML/day, which is less than demand of 50 ML/day. Rule 1 holds (no single source meets demand alone).
-- Sum of daily caps = 70 ML/day, which is greater than demand of 50 ML/day. Rule 2 holds (blend is feasible).
-- Largest source is 40 of 70 = about 57 percent of the three-source total, below the 60 to 65 percent level at which one source would swamp the blend. The toy remains a genuine blending problem.
-- Meeting demand requires at least two sources (40 plus 10), so the model cannot solve on a single source.
-- Headroom = 70 minus 50 = 20 ML/day (about 40 percent). This is deliberately tighter than a mid-size trio so that the Task 10 dry-year capacity reduction can push the model toward infeasibility, which is what makes that scenario test meaningful.
+Against those provisional caps:
+
+- Largest single provisional daily cap = 40 ML/day, which is less than demand of 50 ML/day. Rule 1 holds provisionally (no single source meets demand alone).
+
+- Sum of provisional daily caps = 70 ML/day, which is greater than demand of 50 ML/day. Rule 2 holds provisionally (blend is feasible).
+
+- Largest source is 40 of 70 = about 57 percent of the three-source total, below the 60 to 65 percent level at which one source would swamp the blend. On these inputs the toy remains a genuine blending problem.
+
+- Meeting demand requires at least two sources (40 plus 10), so on these inputs the model cannot solve on a single source.
+
+- Headroom = 70 minus 50 = 20 ML/day (about 40 percent). This is deliberately tighter than a mid-size trio so that a later capacity-reduction scenario can push the model toward infeasibility, which is what makes that scenario test meaningful.
+
+None of the five results above should be read as confirmed. They are the expected behaviour of the toy if the assumed caps are adopted; each is contingent on Data Engineering confirming the 40, 25 and 5 ML/day values or supplying replacements.
 
 O'Shannassy sits below demand and is not needed in a normal year, so its binary activation variable stays off in the baseline and only switches on under stress (for example the dry-year scenario). This exercises the MILP on/off activation logic, which is one of the behaviours the toy model exists to validate.
 
-The daily-extractable caps (40, 25, 5) are conservative placeholders that vary in line with each reservoir's relative size. They represent a small operational daily withdrawal, not a fraction of total storage, and are deliberately far below real throughput to keep the toy hand-validatable. They are flagged for confirmation with Data Engineering (Section 7) and would be replaced with real safe-yield or maximum-daily-withdrawal data in Scope 2.
+The provisional caps (40, 25, 5) are conservative placeholders that vary in line with each reservoir's relative size. They represent a small operational daily withdrawal, not a fraction of total storage, and are deliberately far below real throughput to keep the toy hand-validatable. They are flagged for confirmation with Data Engineering (Section 7) and would be replaced with real safe-yield or maximum-daily-withdrawal data in Scope 2.
 
 ### 6.3 Sources considered and not used
 
 Earlier candidate source sets were tested against the two calibration rules and set aside:
 
 - Thomson is real (1,068,000 ML) but is by far the largest reservoir and can transfer more than 1,000 ML/day. At a 50 ML/day demand it satisfies the whole demand on its own, breaking calibration Rule 1, unless its toy cap is compressed below 50 ML/day. Using the largest reservoir in the system as a sub-50 ML/day source would read as an error, so Thomson is not used.
+
 - Upper Yarra (200,579 ML) has the same problem at this demand scale, and in the real network Thomson feeds Upper Yarra, which feeds Silvan, so the two largest reservoirs are not independent parallel sources to blend against each other.
+
 - A trio of Thomson, Upper Yarra, and O'Shannassy was considered but rejected: Thomson alone would be about 84 percent of the three-source total and O'Shannassy about 0.25 percent, leaving effectively nothing for the optimiser to trade off.
-- The names "Barawon" and "Yashai127", raised earlier, are not real Melbourne Water reservoirs and do not appear in `melbourne_reservoir_daily_history.csv`. The closest real match to Barawon is West Barwon (about 21,500 ML), which belongs to Barwon Water in the Geelong region, not Melbourne Water.
+
+- The names "Barawon" and "Yashai127", raised earlier, have since been resolved by files supplied by Data Engineering. They are water quality monitoring station identifiers, not reservoirs: `BARWON @ GEELONG` (Victorian station 233217) and `YAOSH0127` (station 229421). Neither appears in `melbourne_reservoir_daily_history.csv` because neither is a storage. BARWON @ GEELONG is a Barwon River site in the Geelong region, operated outside the Melbourne Water supply system, so it is not a candidate source for this toy regardless.
 
 The selected set in Section 6.2 (Sugarloaf, Silvan, O'Shannassy) keeps a real large source, a mid source, and a genuinely small source, which gives the optimiser a meaningful blend to solve while satisfying both calibration rules. The demand value of 50 ML/day is unaffected by the source-set choice, as long as the chosen three sources can together supply at least 50 ML/day.
 
@@ -171,16 +217,16 @@ The selected set in Section 6.2 (Sugarloaf, Silvan, O'Shannassy) keeps a real la
 
 ## 7. Coordination with Data Engineering
 
-Action item for the Owner: confirm with Data Engineering, in the Analysis and AI Teams chat, (a) the final three reservoirs chosen for the toy source set, and (b) the daily-extractable capacity assigned to each. Reservoir identities and full-supply capacities are now resolved by `melbourne_reservoir_daily_history.csv` (Section 6.2), so the only remaining decisions are the choice of three real reservoirs and their conservative daily caps. The proposed names Barawon and Yashai127 must be resolved first, since neither exists in the Melbourne Water data (Section 6.3). This avoids duplicated research and lets the Section 6.1 calibration be confirmed against the real toy capacities. The demand value of 50 ML/day does not change as a result of this confirmation unless the chosen sources cannot together supply 50 ML/day.
+Action item for the Owner: confirm with Data Engineering, in the Analysis and AI Teams chat, (a) the final three reservoirs chosen for the toy source set, and (b) the daily-extractable capacity assigned to each. Reservoir identities and full-supply capacities are now resolved by `melbourne_reservoir_daily_history.csv` (Section 6.2), so the only remaining decisions are the choice of three real reservoirs and their conservative daily caps. The proposed names Barawon and Yashai127 have now been resolved as monitoring station identifiers rather than reservoirs (Section 6.3), so they do not add candidate sources. The daily-extractable capacities remain outstanding: the files supplied to date contain water quality parameters only, with no volume, flow or extraction data. This avoids duplicated research and lets the Section 6.1 calibration be confirmed against the real toy capacities. The demand value of 50 ML/day does not change as a result of this confirmation unless the chosen sources cannot together supply 50 ML/day.
 
 ---
 
 ## 8. Limitations
 
 1. The per-capita rate (about 242 L/person/day) is a whole-of-system total, covering residential plus business plus system losses, consistent with the total `daily_usage_ML` series. It is derived by dividing total system demand by population, so it also carries any non-revenue water and loss in that total. It is not a billed-consumption figure.
-2. The served population of about 207,000 is an assumed toy-model input, not a measured demand zone. It is chosen to produce a clean, hand-validatable value of the correct order of magnitude.
+2. The served population of about 207,000 is an assumed toy-model input, not a measured demand zone. Section 4.3 justifies the size against real Melbourne LGA populations and against the calibration window, but the zone itself is representative rather than an actual Melbourne Water service area boundary.
 3. Demand is treated as a single steady daily value. Real demand is seasonal, with the dataset showing a summer peak of 2,190 ML/day against a mean of 1,284 ML/day. Peak-demand behaviour is a scenario concern (Task 11 high-demand scenario), not part of the baseline toy value.
-4. The toy source daily-extractable capacities in Section 6.2 are placeholders pending Section 7 confirmation.
+4. The toy source daily-extractable capacities in Section 6.2 (40, 25 and 5 ML/day) are provisional assumed inputs, not confirmed values. The Section 6.2 calibration result is provisional for the same reason and must be re-run after Section 7 confirmation.
 5. The value applies to the Scope 1 public-data proof-of-concept only and is not an operational recommendation.
 
 ---
@@ -209,3 +255,6 @@ Action item for the Owner: confirm with Data Engineering, in the Analysis and AI
 3. 2023/24 Desalinated Water Order Advice (Technical Analysis), Melbourne Water. Per-reservoir capacity table. https://www.melbournewater.com.au/water-and-environment/water-management/water-storage-reservoirs
 4. Thomson Reservoir facts (transfer capacity over 1,000 ML/day, usable volume 1,068,000 ML), Melbourne Water. https://www.melbournewater.com.au/water-and-environment/water-management/water-storage-reservoirs/thomson-reservoir
 5. Melbourne Water daily reservoir history, provided as `melbourne_reservoir_daily_history.csv`, coverage 1 January 2000 to 24 July 2026. Per-reservoir full-supply capacity and daily volume for the ten major Melbourne Water reservoirs (Thomson, Cardinia, Upper Yarra, Sugarloaf, Silvan, Tarago, Yan Yean, Greenvale, Maroondah, O'Shannassy).
+6. Australian Bureau of Statistics, Regional Population, estimated resident population by local government area at 30 June 2024. City of Monash 209,268; City of Whitehorse 183,462. https://profile.id.com.au/monash/about
+
+7. Local government areas of metropolitan Melbourne (31 LGAs across Greater Melbourne). https://en.wikipedia.org/wiki/Category:Local_government_areas_in_Melbourne

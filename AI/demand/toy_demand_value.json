@@ -23,6 +23,17 @@
       "per_capita_basis": "total (residential + business + system losses)",
       "per_capita_derivation": "1284 ML/day system mean / 5,300,000 people",
       "assumed_population": 207000,
+      "assumed_population_justification": {
+        "status": "assumed_toy_model_input",
+        "ground_1_real_world_anchor": "Matches the size of one real mid-sized Melbourne LGA. Greater Melbourne has 31 LGAs over about 5.3 million people (average about 171,000). City of Monash ERP at 30 June 2024 is 209,268 and City of Whitehorse is 183,462, so 207,000 is within about 1 percent of a real comparator supplied from the same Yarra and Silvan system.",
+        "ground_2_calibration_window": "At 242 L/person/day the toy is only non-trivial for demand between the largest single provisional cap (40 ML/day) and the provisional cap total (70 ML/day), which corresponds to a population between about 165,000 and about 289,000. 207,000 sits near the middle of that band, giving headroom on both sides.",
+        "sensitivity": [
+          {"assumed_population": 165000, "demand_ML_per_day": 40, "toy_valid": false, "reason": "equals largest single provisional cap"},
+          {"assumed_population": 207000, "demand_ML_per_day": 50, "toy_valid": true, "reason": "mid-window, adopted"},
+          {"assumed_population": 289000, "demand_ML_per_day": 70, "toy_valid": false, "reason": "exhausts total provisional supply"}
+        ],
+        "note": "Representative zone size, not a measured Melbourne Water service area boundary."
+      },
       "raw_result_ML_per_day": 50.1,
       "rounded_to_ML_per_day": 50,
       "cross_check_fraction_of_system_demand_percent": 3.9,
@@ -42,18 +53,25 @@
       "blend_is_feasible": "sum(source daily-extractable capacity) >= required_volume_ML"
     },
     "selected_toy_source_set": {
-      "status": "selected_pending_data_engineering_confirmation",
+      "status": "provisional_pending_data_engineering_confirmation",
+      "capacity_status": "provisional_assumed_inputs",
       "note": "Large / mid / small trio. Meeting 50 ML/day requires at least two sources; O'Shannassy stays inactive in the baseline and only activates under stress, exercising the binary activation logic. Thomson and Upper Yarra were rejected as too large for a 50 ML/day toy; Barawon and Yashai127 are not real Melbourne Water reservoirs.",
       "sources": [
-        {"source_name": "Sugarloaf", "full_supply_capacity_ML": 96253, "daily_extractable_cap_ML_per_day": 40, "role": "large"},
-        {"source_name": "Silvan", "full_supply_capacity_ML": 40445, "daily_extractable_cap_ML_per_day": 25, "role": "mid"},
-        {"source_name": "O'Shannassy", "full_supply_capacity_ML": 3123, "daily_extractable_cap_ML_per_day": 5, "role": "small"}
+        {"source_name": "Sugarloaf", "full_supply_capacity_ML": 96253, "full_supply_capacity_status": "sourced", "daily_extractable_cap_ML_per_day": 40, "daily_extractable_cap_status": "provisional_assumed", "role": "large"},
+        {"source_name": "Silvan", "full_supply_capacity_ML": 40445, "full_supply_capacity_status": "sourced", "daily_extractable_cap_ML_per_day": 25, "daily_extractable_cap_status": "provisional_assumed", "role": "mid"},
+        {"source_name": "O'Shannassy", "full_supply_capacity_ML": 3123, "full_supply_capacity_status": "sourced", "daily_extractable_cap_ML_per_day": 5, "daily_extractable_cap_status": "provisional_assumed", "role": "small"}
       ],
       "sum_daily_extractable_cap_ML_per_day": 70,
       "max_single_daily_cap_ML_per_day": 40,
       "max_single_share_percent": 57,
-      "calibration_passes": true,
-      "headroom_ML_per_day": 20
+      "headroom_ML_per_day": 20,
+      "calibration": {
+        "state": "provisional",
+        "confirmed_by_data_engineering": false,
+        "passes_against_provisional_caps": true,
+        "note": "Both calibration rules hold against the assumed caps of 40, 25 and 5 ML/day only. This result is not confirmed and must be re-evaluated once Data Engineering supplies real safe-yield or maximum-daily-withdrawal capacities.",
+        "recheck_required_before": "Task 5 hand validation"
+      }
     },
     "sources": [
       {
@@ -75,6 +93,12 @@
         "file": "melbourne_reservoir_daily_history.csv",
         "coverage": "2000-01-01 to 2026-07-24",
         "note": "Per-reservoir full-supply capacity for the ten major Melbourne Water reservoirs; used to confirm real source capacities."
+      },
+      {
+        "name": "Regional Population, estimated resident population by local government area, 30 June 2024",
+        "publisher": "Australian Bureau of Statistics",
+        "url": "https://profile.id.com.au/monash/about",
+        "note": "Used only to justify the assumed toy demand-zone population. City of Monash 209,268; City of Whitehorse 183,462."
       }
     ],
     "data_flags": {
@@ -84,10 +108,11 @@
       ],
       "notes": [
         "required_volume_ML is based on total per-capita demand (residential + business + system losses), consistent with the total daily_usage_ML series.",
-        "assumed_population of 207000 is a toy-model input, not a measured demand zone.",
+        "assumed_population of 207000 is a toy-model input, not a measured demand zone. Justification is recorded under derivation.assumed_population_justification.",
         "Selected real source set: Sugarloaf, Silvan, O'Shannassy (see selected_toy_source_set).",
-        "Barawon and Yashai127 are not real Melbourne Water reservoirs; Thomson and Upper Yarra are too large for a 50 ML/day toy. All excluded.",
-        "Toy source daily-extractable capacities are conservative placeholders, to be confirmed with Data Engineering before Task 5 hand calculations."
+        "Barawon and Yashai127 resolved as water quality monitoring stations (BARWON @ GEELONG site 233217, YAOSH0127 site 229421), not reservoirs. Barwon @ Geelong is outside the Melbourne Water system. Thomson and Upper Yarra are too large for a 50 ML/day toy. All excluded from the source set.",
+        "Toy source daily-extractable capacities of 40, 25 and 5 ML/day are provisional assumed inputs, not confirmed values.",
+        "The capacity calibration result is provisional and holds against the assumed caps only. It must be re-run after Data Engineering confirmation."
       ]
     },
     "coordination": {
