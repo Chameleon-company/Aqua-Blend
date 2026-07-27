@@ -2,7 +2,24 @@
 
 Briefly, binding constraints mean the contraints are used completely. For example, `{source}_capacity >= 1000L`, then it only shown when the solution exhausts the source water at exactly 1000L. In other words, the binding constraints can be smaller than the actual constraints, as this template only describes why the binding constraints exist, not how all the constraints are kept in the feasible region.
 
-Therefore, these outputs are only generated if these constraints are included in `binding_constraints_summary` field in the json contract. In this template, the constraints are separated for readability, and can then be concatenated in the final output.
+Therefore, these outputs are only generated if these constraints are included in `binding_constraints_summary` field in the json contract. In this template, the constraints are separated for readability, and can then be concatenated in the final output — see Output composition below for the sentence shape, order and separator.
+
+## Output composition — shape, order, separator
+
+Each entry in `binding_constraints_summary` renders as one sentence:
+```
+The solution was limited by {binding_constraint}: {plain_language_explanation}.
+```
+This is the shape the Unknown fallback at the end of this file already uses, so every branch of the template produces the same sentence form.
+
+**Order.** Group by category in the fixed order below, and within a category keep the order the names appear in `binding_constraints_summary`:
+
+1. Demand
+2. Source-capacity
+3. Source-activation
+4. Treatment-capacity
+5. Water-quality
+
 
 ## Demand — name `demand_satisfaction_{zone}` (matches `demand_zones[].zone_id`)
 ```
@@ -41,6 +58,35 @@ Therefore, these outputs are only generated if these constraints are included in
 {plain_language_explanation} = {parameter} sat right at the edge of its safe range ({water_quality.after_treatment.{parameter}.constraint_min}–{water_quality.after_treatment.{parameter}.constraint_max} {water_quality.after_treatment.{parameter}.unit}), so the blend could not be pushed any further
 ```
 
+## Rounding and units
+
+- `required_volume_ML`, `volume_drawn_ML`, `volume_processed_ML`: whole ML
+- `treatment_batches`: whole number, and match the noun to it — "1 batch", not "1 batches"
+- `constraint_min` / `constraint_max`: exactly as given in the JSON, decimals preserved (`0` stays `0`, `5.0` stays `5.0`) — never normalise or add precision the solver did not report
+- `unit`: printed verbatim from `water_quality.after_treatment.{parameter}.unit`, never translated or abbreviated
+- Range separator: en dash, no spaces (`6.5–8.5`)
+
+## Estimated-value disclosure
+
+
+Before rendering, scan `data_flags.estimated_fields` and treat a section's figures as estimated when an entry mentions:
+
+| Section | Entry in `data_flags.estimated_fields` mentions |
+| --- | --- |
+| Demand | `required_volume_ML`, or demand for that zone |
+| Source-capacity | capacity, together with the source's name or id, or "all sources" |
+| Treatment-capacity | treatment facility capacity, batches, or dosing rates |
+| Water-quality | quality readings, or the parameter's name |
+
+Source-activation quotes no figure, so it has nothing to disclose.
+
+When flagged, append `, estimated` inside the existing parenthetical clause rather than opening a second set of brackets:
+```
+{plain_language_explanation} = {sources.selected[].source_name} was drawn up to the most its capacity allows ({sources.selected[].volume_drawn_ML} ML, estimated), so any additional water had to come from other sources
+```
+
+If the clause carrying the figure was dropped under the Missing-field rule, the tag goes with it — there is no figure left to qualify.
+
 ## Empty list — `binding_constraints_summary` is `[]`
 
 It is possible to have a solution without any binding contraints. Said differently, all variables stay within the bounds given by the contraints.
@@ -48,6 +94,17 @@ It is possible to have a solution without any binding contraints. Said different
 ```
 No constraint was binding; the solution stayed within every limit.
 ```
+
+## No matching entry — the name matches a section, but no entry has that id
+
+For example, `facility_1_batch_capacity` is binding but `treatment_facilities.active[]` has no `facility_1`. Emit the Unknown wording and raise:
+```
+The solution was limited by {binding_constraint} (no plain-language mapping available).
+```
+
+Finding the id in the sibling array (`sources.unused[]`, `treatment_facilities.inactive[]`) still counts as no match: an unused source or inactive facility cannot be binding, so that is a contradiction in the solver output. Do not read the figures from it. Source-activation is the exception — it reads both `selected[]` and `unused[]`, so only absence from both counts.
+
+If the entry is found and only a field such as `volume_processed_ML` is absent, that is the Missing-field case below.
 
 ## Missing field — name matches, but a field it needs is absent
 
@@ -71,7 +128,7 @@ The same rule elsewhere: demand becomes `the full volume needed by {demand_zones
 
 This is used for binding constraints that are not defined in the json contract. In other words, this raise errors when the json contract does not align with the pre-defined contraints and variables.
 
-This covers the constraint *name* only. A name that does match a section above but is missing a field that section needs is the Missing-field case, not this one.
+This covers the constraint *name* only. A name that does match a section above but is missing a field that section needs is the Missing-field case, and a name that matches a section but resolves to no entry is the No-matching-entry case — neither is this one.
 
 ```
 The solution was limited by {binding_constraint} (no plain-language mapping available).
