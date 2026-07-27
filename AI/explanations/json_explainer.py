@@ -226,7 +226,218 @@ def explain_sources(data: dict) -> str:
 
 # ---------------------------------------------------------------------------
 # Task 7 - Binding constraints explanation (Template_BindingConstraints.md)
+#
+# Updated to match the template's latest revision (approved on PR #9), which
+# added four requirements beyond the original version this file was first
+# built against:
+#   1. Output composition: group by fixed category order (Demand,
+#      Source-capacity, Source-activation, Treatment-capacity, Water-quality),
+#      not JSON order.
+#   2. Estimated-value disclosure: append ", estimated" inside the existing
+#      parenthetical when data_flags.estimated_fields flags the relevant
+#      figure.
+#   3. Missing-field handling: an entry that IS found but is missing a
+#      "detail" field (a volume, count, limit, unit) drops just that clause,
+#      not the whole sentence. A missing "identity" field (source_name,
+#      facility_name) falls back to the matching id.
+#   4. Singular/plural: "1 batch" vs "N batches".
 # ---------------------------------------------------------------------------
+
+CATEGORY_ORDER = [
+    "demand", "source_capacity", "source_activation",
+    "treatment_capacity", "water_quality",
+]
+
+
+def _round_ml(value):
+    """Whole ML per the template's rounding rule. None stays None -
+    Missing-field handling decides what to do with an absent figure."""
+    return round(value) if value is not None else None
+
+
+def _batch_noun(n) -> str:
+    return "batch" if n == 1 else "batches"
+
+
+def _estimated_disclosure(category: str, estimated_fields: list, **kwargs) -> str:
+    """Returns ', estimated' if the relevant figure for this category is
+    flagged in data_flags.estimated_fields, per the template's disclosure
+    table. Empty string otherwise. source_activation never discloses - it
+    quotes no figure.
+
+    Open item for the team: the Source-capacity rule is written as "capacity,
+    together with the source's name or id, OR 'all sources'" - read literally,
+    a standalone 'all sources' mention triggers disclosure even when that
+    entry is actually about a different field (e.g. cost_per_ML) for all
+    sources, not capacity specifically. This is the same kind of over-broad
+    match already flagged in Task 6's template (Section 8) and is implemented
+    literally here rather than silently narrowed - worth confirming with
+    Archit/Trminh whether 'all sources' alone should be sufficient.
+    """
+    fields = estimated_fields or []
+
+    def mentions(*hints):
+        return any(any(h and h.lower() in ef.lower() for h in hints) for ef in fields)
+
+    if category == "demand":
+        zone_id = kwargs.get("zone_id")
+        return ", estimated" if mentions("required_volume_ML", f"demand for {zone_id}") else ""
+
+    if category == "source_capacity":
+        source_id = kwargs.get("source_id")
+        source_name = kwargs.get("source_name")
+        has_capacity_and_name = any(
+            "capacity" in ef.lower() and (
+                (source_id and source_id.lower() in ef.lower())
+                or (source_name and source_name.lower() in ef.lower())
+            )
+            for ef in fields
+        )
+        return ", estimated" if (has_capacity_and_name or mentions("all sources")) else ""
+
+    if category == "treatment_capacity":
+        return ", estimated" if mentions("treatment facility capacity", "batches", "dosing rates") else ""
+
+    if category == "water_quality":
+        parameter = kwargs.get("parameter")
+        return ", estimated" if mentions("quality readings", parameter) else ""
+
+    return ""
+
+
+def _classify_constraint(name: str) -> str:
+    """Returns the category a constraint NAME belongs to, by pattern alone -
+    independent of whether a matching entry actually exists. Classification
+    drives Output-composition ordering; lookup success is decided separately
+    when rendering (No-matching-entry case)."""
+    if name.startswith("demand_satisfaction_"):
+        return "demand"
+    if name.endswith("_batch_capacity"):
+        return "treatment_capacity"
+    if name.endswith("_capacity"):
+        return "source_capacity"
+    if name.endswith("_activation"):
+        return "source_activation"
+    if name.endswith("_range"):
+        return "water_quality"
+    return "unknown"
+
+
+def _render_constraint(category, name, selected, unused, demand_zones,
+                        facilities, quality, estimated_fields) -> str:
+    """Renders one binding-constraint sentence. Falls back to the Unknown
+    wording if the id encoded in `name` has no matching entry at all
+    (No-matching-entry case); drops individual detail clauses, rather than
+    the whole sentence, when an entry IS found but missing a field
+    (Missing-field case)."""
+
+    unknown_wording = f"The solution was limited by {name} (no plain-language mapping available)."
+
+    if category == "demand":
+        zone_id = name[len("demand_satisfaction_"):]
+        zone = demand_zones.get(zone_id)
+        if not zone:
+            return unknown_wording
+        vol = _round_ml(zone.get("required_volume_ML"))
+        if vol is None:
+            return (
+                f"The solution was limited by the water demand for {zone_id}: the full "
+                f"volume needed by {zone_id} had to be delivered, leaving no room to "
+                "supply any less."
+            )
+        tag = _estimated_disclosure("demand", estimated_fields, zone_id=zone_id)
+        estimated_suffix = " (estimated)" if tag else ""
+        return (
+            f"The solution was limited by the water demand for {zone_id}: the full "
+            f"{vol} ML{estimated_suffix} needed by {zone_id} had to be delivered, "
+            "leaving no room to supply any less."
+        )
+
+    if category == "source_capacity":
+        source_id = name[: -len("_capacity")]
+        s = selected.get(source_id)
+        if not s:
+            return unknown_wording
+        source_name = s.get("source_name") or source_id
+        vol = _round_ml(s.get("volume_drawn_ML"))
+        binding_label = f"the available capacity of {source_name}"
+        if vol is None:
+            return (
+                f"The solution was limited by {binding_label}: {source_name} was "
+                "drawn up to the most its capacity allows, so any additional water "
+                "had to come from other sources."
+            )
+        tag = _estimated_disclosure("source_capacity", estimated_fields,
+                                     source_id=source_id, source_name=source_name)
+        return (
+            f"The solution was limited by {binding_label}: {source_name} was drawn "
+            f"up to the most its capacity allows ({vol} ML{tag}), so any additional "
+            "water had to come from other sources."
+        )
+
+    if category == "source_activation":
+        source_id = name[: -len("_activation")]
+        if source_id in selected:
+            s = selected[source_id]
+            source_name = s.get("source_name") or source_id
+            return (
+                f"The solution was limited by whether {source_name} is switched on: "
+                f"{source_name} had to be switched fully on rather than partly used, "
+                "and that is what allowed it into the blend."
+            )
+        if source_id in unused:
+            s = unused[source_id]
+            source_name = s.get("source_name") or source_id
+            return (
+                f"The solution was limited by whether {source_name} is switched on: "
+                f"{source_name} was left switched off entirely rather than partly "
+                "used, so none of it could enter the blend."
+            )
+        return unknown_wording
+
+    if category == "treatment_capacity":
+        facility_id = name[: -len("_batch_capacity")]
+        f = facilities.get(facility_id)
+        if not f:
+            return unknown_wording
+        facility_name = f.get("facility_name") or facility_id
+        vol = _round_ml(f.get("volume_processed_ML"))
+        batches = f.get("treatment_batches")
+        binding_label = f"the processing capacity of {facility_name}"
+        if vol is None or batches is None:
+            return (
+                f"The solution was limited by {binding_label}: {facility_name} was "
+                "already treating as much as it can handle, leaving no spare capacity."
+            )
+        tag = _estimated_disclosure("treatment_capacity", estimated_fields)
+        return (
+            f"The solution was limited by {binding_label}: {facility_name} was "
+            f"already treating as much as it can handle ({vol} ML across {batches} "
+            f"{_batch_noun(batches)}{tag}), leaving no spare capacity."
+        )
+
+    if category == "water_quality":
+        parameter = name[: -len("_range")]
+        q = quality.get(parameter)
+        if not q:
+            return unknown_wording
+        cmin, cmax, unit = q.get("constraint_min"), q.get("constraint_max"), q.get("unit")
+        binding_label = f"the {parameter} limit"
+        if cmin is None or cmax is None or unit is None:
+            return (
+                f"The solution was limited by {binding_label}: {parameter} sat right "
+                "at the edge of its safe range, so the blend could not be pushed any "
+                "further."
+            )
+        tag = _estimated_disclosure("water_quality", estimated_fields, parameter=parameter)
+        return (
+            f"The solution was limited by {binding_label}: {parameter} sat right at "
+            f"the edge of its safe range ({cmin}\u2013{cmax} {unit}{tag}), so the "
+            "blend could not be pushed any further."
+        )
+
+    return unknown_wording  # true Unknown (name matches no pattern at all)
+
 
 def explain_binding_constraints(data: dict) -> str:
     binding = data.get(F_BINDING_SUMMARY, []) or []
@@ -242,79 +453,26 @@ def explain_binding_constraints(data: dict) -> str:
         for f in data.get(F_TREATMENT_FACILITIES, {}).get(F_ACTIVE, []) or []
     }
     quality = data.get(F_WATER_QUALITY, {}).get(F_AFTER_TREATMENT, {}) or {}
+    estimated_fields = data.get(F_DATA_FLAGS, {}).get(F_ESTIMATED_FIELDS, []) or []
+
+    # Output composition: group by fixed category order; within a category,
+    # keep the order names appear in binding_constraints_summary. Names that
+    # match no category pattern at all (true Unknown) go last, in list order.
+    buckets = {cat: [] for cat in CATEGORY_ORDER}
+    unknown_bucket = []
+    for name in binding:
+        category = _classify_constraint(name)
+        (unknown_bucket if category == "unknown" else buckets[category]).append(name)
 
     lines = []
-    for name in binding:
-        matched = False
-
-        if name.startswith("demand_satisfaction_"):
-            zone_id = name[len("demand_satisfaction_"):]
-            zone = demand_zones.get(zone_id)
-            if zone:
-                lines.append(
-                    f"The solution was limited by the water demand for {zone_id}: the full "
-                    f"{zone.get('required_volume_ML')} ML needed by {zone_id} had to be "
-                    "delivered, leaving no room to supply any less."
-                )
-                matched = True
-
-        elif name.endswith("_batch_capacity"):
-            facility_id = name[: -len("_batch_capacity")]
-            f = facilities.get(facility_id)
-            if f:
-                lines.append(
-                    f"The solution was limited by the processing capacity of "
-                    f"{f.get('facility_name')}: {f.get('facility_name')} was already treating "
-                    f"as much as it can handle ({f.get('volume_processed_ML')} ML across "
-                    f"{f.get('treatment_batches')} batches), leaving no spare capacity."
-                )
-                matched = True
-
-        elif name.endswith("_capacity"):
-            source_id = name[: -len("_capacity")]
-            s = selected.get(source_id)
-            if s:
-                lines.append(
-                    f"The solution was limited by the available capacity of "
-                    f"{s.get('source_name')}: {s.get('source_name')} was drawn up to the most "
-                    f"its capacity allows ({s.get('volume_drawn_ML')} ML), so any additional "
-                    "water had to come from other sources."
-                )
-                matched = True
-
-        elif name.endswith("_activation"):
-            source_id = name[: -len("_activation")]
-            if source_id in selected:
-                s = selected[source_id]
-                lines.append(
-                    f"The solution was limited by whether {s.get('source_name')} is switched "
-                    f"on: {s.get('source_name')} had to be switched fully on rather than "
-                    "partly used, and that is what allowed it into the blend."
-                )
-                matched = True
-            elif source_id in unused:
-                s = unused[source_id]
-                lines.append(
-                    f"The solution was limited by whether {s.get('source_name')} is switched "
-                    f"on: {s.get('source_name')} was left switched off entirely rather than "
-                    "partly used, so none of it could enter the blend."
-                )
-                matched = True
-
-        elif name.endswith("_range"):
-            parameter = name[: -len("_range")]
-            q = quality.get(parameter)
-            if q:
-                lines.append(
-                    f"The solution was limited by the {parameter} limit: {parameter} sat "
-                    f"right at the edge of its safe range ({q.get('constraint_min')}"
-                    f"\u2013{q.get('constraint_max')} {q.get('unit')}), so the blend could not "
-                    "be pushed any further."
-                )
-                matched = True
-
-        if not matched:
-            lines.append(f"The solution was limited by {name} (no plain-language mapping available).")
+    for category in CATEGORY_ORDER:
+        for name in buckets[category]:
+            lines.append(_render_constraint(
+                category, name, selected, unused, demand_zones,
+                facilities, quality, estimated_fields
+            ))
+    for name in unknown_bucket:
+        lines.append(f"The solution was limited by {name} (no plain-language mapping available).")
 
     return "\n\n".join(lines)
 

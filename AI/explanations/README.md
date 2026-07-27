@@ -38,7 +38,7 @@ agreed the explanation should say.
 | --- | --- | --- |
 | `json_explainer.py` | The actual program. This is the deliverable. | Yes — this is what gets used |
 | `sample_explanations.txt` | Real output from the script, already run, saved to a file so you can read it without running anything | No — just open and read |
-| `test_json_explainer.py` | 44 automated checks confirming the script behaves correctly, and also contains a full copy of the example data (`REFERENCE_JSON`) that the script can be run against | Optional — run it to double-check everything still works |
+| `test_json_explainer.py` | 55 automated checks confirming the script behaves correctly, and also contains a full copy of the example data (`REFERENCE_JSON`) that the script can be run against | Optional — run it to double-check everything still works |
 | `README.md` | This file | No — just documentation |
 
 These four are Task 9's actual deliverables. There's no separate example-data file
@@ -53,7 +53,10 @@ Reads a Results JSON and produces six sections of plain-English explanation:
 1. **Selected & Unused Sources** — which water sources were used, how much of each,
    and why; which were skipped, and why
 2. **Binding Constraints** — what limited the result (e.g. "demand had to be fully
-   met, leaving no slack")
+   met, leaving no slack"), grouped in a fixed order (demand, then source-capacity,
+   then source-activation, then treatment-capacity, then water-quality) regardless
+   of what order the JSON lists them in, and flagged with ", estimated" when the
+   underlying figure is estimated rather than measured
 3. **Water Quality & Safety Margins** — whether the treated water is safe, and which
    measurement is closest to its safety limit
 4. **Sensitivity to Key Assumptions** — which guessed/estimated inputs could change
@@ -104,7 +107,7 @@ a field and see what the script says about the missing data.
 
 ### `sample_explanations.txt` — pre-generated example outputs
 
-Eight examples, each showing the script's real output on a slightly different input.
+Nine examples, each showing the script's real output on a slightly different input.
 **Every one of these was produced by genuinely running `python3 json_explainer.py`
 as a real command** — not typed by hand, not simulated. Each is labelled with what's
 different about that scenario and why it's there:
@@ -119,6 +122,7 @@ different about that scenario and why it's there:
 | 6 | One water-quality measurement missing entirely | Says "not reported," never assumes it passed |
 | 7 | The "what could change the answer" info missing | Shows the fallback message for that section |
 | 8 | The whole cost/pricing section missing | Cost shows as "not reported" instead of a guessed number |
+| 9 | Binding constraints listed out of order (water-quality first, demand last) | Output still renders in fixed category order, not JSON order |
 
 **Why some of these look like real solver output but aren't:** Samples 2–8 are all the
 same reference scenario with one thing deliberately deleted or changed, purely to
@@ -135,7 +139,7 @@ thing (no guessing, no hardcoding) without ever showing a currency other than AU
 
 ### `test_json_explainer.py` — the automated checks
 
-44 tests. Running them checks that every rule described above actually holds — not
+55 tests. Running them checks that every rule described above actually holds — not
 just on the one example scenario, but on every unusual situation: missing data,
 failed solves, safety violations, and so on.
 
@@ -146,7 +150,7 @@ pip install pytest --break-system-packages
 python3 -m pytest test_json_explainer.py -v
 ```
 
-All 44 currently pass. You don't need to run this yourself to use the script — it's
+All 55 currently pass. You don't need to run this yourself to use the script — it's
 there so anyone reviewing or changing the code later can quickly confirm nothing
 broke.
 
@@ -170,6 +174,31 @@ judge whether an explanation is good) pointed out that nothing was covering it y
 figures must show their currency (AUD). The script now reads the currency from the
 data file itself — never hardcoded — so every dollar amount in the explanation stays
 consistent, and would automatically update if the currency ever changed.
+
+**Binding constraints were rebuilt after Task 7's template was substantially updated**
+(reviewed and approved by Archit on PR #9). Four things changed:
+
+- **Output order.** Constraints now render grouped by a fixed category order —
+  demand, source-capacity, source-activation, treatment-capacity, water-quality —
+  regardless of what order the JSON lists them in. Sample 9 in
+  `sample_explanations.txt` demonstrates this directly.
+- **Estimated-value disclosure.** A constraint's figure now gets ", estimated"
+  appended inside its existing parenthetical when `data_flags.estimated_fields[]`
+  flags it. This is a real, visible change: even the reference scenario's own
+  capacity constraint now reads "(290 ML, estimated)" instead of "(290 ML)",
+  because `cost_per_ML (all sources)` matches the template's "or 'all sources'"
+  trigger. **Worth flagging to Archit/Trminh:** that trigger is implemented
+  literally here, so any mention of "all sources" anywhere in `estimated_fields`
+  marks a source's capacity as estimated too, even when the flagged entry is
+  actually about a different field (cost, not capacity) for all sources — the same
+  kind of over-broad match already flagged in Task 6's template.
+- **Missing-field handling.** Previously, a missing field (e.g. `volume_drawn_ML`)
+  would print literally as the word "None" inside the sentence. Now the whole
+  clause carrying that figure is dropped instead, and the sentence still reads
+  correctly. A missing name (`source_name`, `facility_name`) falls back to the
+  matching id rather than printing "None".
+- **Singular batch.** "1 batch" instead of "1 batches" when a facility processed
+  exactly one batch.
 
 ---
 
@@ -219,3 +248,9 @@ so instead of filling the gap with something that sounds plausible.
 - **Every PR in this repo has needed a second reviewer before merge, without
   exception** — including ones with only minor feedback. Don't expect one approval to
   be enough.
+- **The "all sources" estimated-disclosure trigger for binding constraints is a
+  literal reading of an ambiguous template rule, not a confirmed interpretation.**
+  See the binding-constraints bullet in Section 3 above — worth a direct confirm
+  from Archit or Trminh before this merges, since it currently makes any capacity
+  constraint show as estimated whenever *any* field is flagged estimated for all
+  sources, not just capacity specifically.

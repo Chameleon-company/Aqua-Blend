@@ -446,6 +446,100 @@ class TestBindingConstraintsEdgeCases:
 # 6. Water-quality edge cases (Task 8)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# 5b. Binding-constraints: updated template requirements (category ordering,
+#     estimated disclosure, missing-field handling, singular batch)
+# ---------------------------------------------------------------------------
+
+class TestBindingConstraintsUpdatedTemplate:
+
+    def test_category_ordering_ignores_json_order(self):
+        """Water-quality listed FIRST in binding_constraints_summary must
+        still render AFTER demand and source-capacity, per the template's
+        fixed category order."""
+        data = ref()
+        data["binding_constraints_summary"] = [
+            "turbidity_range", "demand_satisfaction_zone_1", "yarra_kew_capacity"
+        ]
+        text = explain_binding_constraints(data)
+        assert text.index("water demand for zone_1") < text.index("available capacity of Yarra River, Kew")
+        assert text.index("available capacity of Yarra River, Kew") < text.index("turbidity limit")
+
+    def test_estimated_disclosure_capacity_all_sources(self):
+        """'cost_per_ML (all sources)' in the reference JSON's estimated
+        fields triggers disclosure on source-capacity per the template's
+        literal 'or all sources' rule, even though that entry is about cost,
+        not capacity - this is a known, flagged ambiguity, not a bug."""
+        text = explain_binding_constraints(ref())
+        assert "(290 ML, estimated)" in text
+
+    def test_missing_required_volume_ml_drops_clause_not_whole_sentence(self):
+        data = ref()
+        del data["demand_zones"][0]["required_volume_ML"]
+        text = explain_binding_constraints(data)
+        assert "the full volume needed by zone_1 had to be delivered" in text
+        assert "None" not in text
+
+    def test_missing_volume_drawn_ml_drops_clause(self):
+        data = ref()
+        del data["sources"]["selected"][1]["volume_drawn_ML"]  # yarra_kew
+        text = explain_binding_constraints(data)
+        assert "was drawn up to the most its capacity allows, so" in text
+        assert "None" not in text
+
+    def test_missing_facility_fields_drops_clause(self):
+        data = ref()
+        del data["treatment_facilities"]["active"][0]["volume_processed_ML"]
+        data["binding_constraints_summary"] = ["facility_1_batch_capacity"]
+        text = explain_binding_constraints(data)
+        assert "was already treating as much as it can handle, leaving no spare capacity" in text
+        assert "None" not in text
+
+    def test_missing_quality_range_fields_drops_clause(self):
+        data = ref()
+        del data["water_quality"]["after_treatment"]["turbidity"]["constraint_min"]
+        data["binding_constraints_summary"] = ["turbidity_range"]
+        text = explain_binding_constraints(data)
+        assert "sat right at the edge of its safe range, so the blend" in text
+        assert "None" not in text
+
+    def test_missing_source_name_falls_back_to_source_id(self):
+        data = ref()
+        del data["sources"]["selected"][1]["source_name"]  # yarra_kew
+        text = explain_binding_constraints(data)
+        assert "yarra_kew" in text  # falls back to the id, not "None"
+
+    def test_singular_batch_noun(self):
+        data = ref()
+        data["treatment_facilities"]["active"][0]["treatment_batches"] = 1
+        data["binding_constraints_summary"] = ["facility_1_batch_capacity"]
+        text = explain_binding_constraints(data)
+        assert "1 batch," in text or "1 batch)" in text or "1 batch " in text
+        assert "1 batches" not in text
+
+    def test_plural_batch_noun_unchanged(self):
+        data = ref()
+        data["binding_constraints_summary"] = ["facility_1_batch_capacity"]
+        text = explain_binding_constraints(data)
+        assert "5 batches" in text
+
+    def test_no_estimated_tag_when_figure_dropped(self):
+        """If the clause carrying the figure is dropped under Missing-field,
+        no estimated tag should appear either - there's no figure left to
+        qualify."""
+        data = ref()
+        del data["demand_zones"][0]["required_volume_ML"]
+        data["binding_constraints_summary"] = ["demand_satisfaction_zone_1"]  # isolate
+        text = explain_binding_constraints(data)
+        assert "estimated" not in text.lower()
+
+    def test_source_activation_never_discloses_estimated(self):
+        data = ref()
+        data["binding_constraints_summary"] = ["silvan_reservoir_activation"]
+        text = explain_binding_constraints(data)
+        assert "estimated" not in text.lower()
+
+
 class TestQualityEdgeCases:
 
     def test_violation_reported(self):
