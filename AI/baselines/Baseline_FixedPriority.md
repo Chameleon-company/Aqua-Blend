@@ -59,7 +59,7 @@ The heuristic follows these steps:
 
 ---
 
-## 4. Constraints and Assumptions
+## 4. Constraints
 
 The heuristic respects the following constraints:
 
@@ -88,7 +88,7 @@ Demand = 500 ML/day
 | Yarra Kew | 300 | 300 | Yes | Yes |
 | Groundwater Bore 1 | 60 | 60 | Yes | Yes |
 
-> **Note:** For this worked example, the maximum daily withdrawal limit is assumed to be equal to the confirmed source capacity because no separate withdrawal limits have been specified.
+> **Note:** Separate maximum daily withdrawal limits have not been provided. For this worked example, the confirmed source capacities are used as the withdrawal limits so that the fixed-priority allocation logic remains unchanged.
 
 ### Allocation Process
 
@@ -104,6 +104,8 @@ Remaining demand:
 500 − 350 = 150 ML/day
 ```
 
+---
+
 #### Step 2 – Yarra Kew
 
 - Available capacity = **300 ML/day**
@@ -118,9 +120,13 @@ Remaining demand:
 
 Demand has now been fully satisfied.
 
+---
+
 #### Step 3 – Groundwater Bore 1
 
 No allocation is required because the demand has already been satisfied.
+
+---
 
 ### Final Allocation
 
