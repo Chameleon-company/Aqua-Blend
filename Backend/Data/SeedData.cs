@@ -9,12 +9,11 @@ public static class SeedData
         if (context.WaterSources.Any()) return;
 
         context.WaterSources.AddRange(
-            new WaterSource { Name = "Reservoir A", Type = "Surface", CreatedAt = DateTime.UtcNow },
-            new WaterSource { Name = "Bore Well 1", Type = "Groundwater", CreatedAt = DateTime.UtcNow }
-        );
+            new WaterSource { Name = "Reservoir A", Type = "Surface"},
+            new WaterSource { Name = "Bore Well 1", Type = "Groundwater"});
 
         context.Scenarios.AddRange(
-            new Scenario { Name = "Drought Scenario", Description = "Low rainfall projection", CreatedAt = DateTime.UtcNow }
+            new Scenario { Name = "Drought Scenario", Description = "Low rainfall projection" }
         );
 
         context.SaveChanges();
