@@ -1,34 +1,297 @@
+
+Fixed-Priority Baseline Heuristic
+Task: Task 3 — Create Fixed-Priority Baseline Heuristic
+Member: Naga Kowshik
+Project: AquaBlend — Analysis & AI Team
+Version: Sprint 1 Draft (Updated)
+
+1. Overview
+This document defines a fixed-priority heuristic for allocating water sources to satisfy water demand. This baseline method is created for comparison purposes and is not intended to represent the optimal allocation strategy. The heuristic allocates water according to a predefined source priority order using the confirmed sources provided for the project.
+
+The allocation process selects water sources sequentially until the required demand is satisfied or all available supply has been exhausted.
+
+Units:
+
+Volume: ML/day
+
+Cost: AUD (where applicable)
+
+2. Fixed Source Preference Order
+The fixed-priority baseline uses the following predefined source order.
+
+Priority	Water Source	Capacity (ML/day)	Justification
+1	Silvan Reservoir	350	Primary storage reservoir with the largest available capacity.
+2	Yarra Kew	300	Secondary surface water source used after Silvan Reservoir.
+3	Groundwater Bore 1	60	Backup groundwater source used only when reservoir supply is insufficient.
+This ordering is used only for the baseline heuristic so that future optimisation methods can be compared against a consistent allocation strategy.
+
+3. Fixed-Priority Allocation Rule
+The heuristic follows these steps:
+
+Select the highest-priority active and connected water source.
+
+Check the available capacity of the selected source.
+
+Allocate water up to the remaining demand or the source capacity, whichever is smaller.
+
+Reduce the remaining demand.
+
+If demand still exists, continue to the next source in the priority list.
+
+Continue until:
+
+demand is satisfied, or
+
+all available sources have been allocated.
+
+If total available capacity is less than demand, return Infeasible.
+
+4. Constraints and Assumptions
+Constraint	Description
+Source Activation	Only active sources can provide water.
+Connectivity	Sources must be connected to the demand zone.
+Capacity Limit	Allocation cannot exceed the source capacity.
+Demand Satisfaction	Allocation continues until demand is met or all capacity is exhausted.
+5. Numerical Example
+Daily Demand
+Demand = 500 ML/day
+Available Water Sources
+Source	Capacity (ML/day)	Activated	Connected
+Silvan Reservoir	350	Yes	Yes
+Yarra Kew	300	Yes	Yes
+Groundwater Bore 1	60	Yes	Yes
+Allocation Process
+Step 1 – Silvan Reservoir
+Capacity = 350 ML/day
+
+Allocate 350 ML/day
+
+Remaining demand:
+
+500 − 350 = 150 ML/day
+Step 2 – Yarra Kew
+Capacity = 300 ML/day
+
+Remaining demand = 150 ML/day
+
+Allocate 150 ML/day
+
+Remaining demand:
+
+150 − 150 = 0 ML/day
+Demand has now been fully satisfied.
+
+Groundwater Bore 1 is not required because the demand has already been met.
+
+Final Allocation
+Source	Allocated Volume (ML/day)
+Silvan Reservoir	350
+Yarra Kew	150
+Groundwater Bore 1	0
+Total	500
+Result:
+
+Status: Feasible
+The demand of 500 ML/day is completely satisfied using the first two priority sources.
+
+6. Infeasibility Handling
+If the total available capacity of all active and connected sources is less than the required demand, the heuristic returns:
+
+Status: Infeasible
+
+Reason:
+Total available supply is insufficient to satisfy demand.
+Example:
+
+Demand = 800 ML/day
+
+Available Supply
+
+Silvan Reservoir = 350 ML/day
+Yarra Kew = 300 ML/day
+Groundwater Bore 1 = 60 ML/day
+
+Total Available = 710 ML/day
+Since:
+
+710 < 800
+the result is:
+
+Status: Infeasible
+7. Output Schema Fields
+Field	Description
+source_name	Name of the selected water source
+priority	Priority order used for allocation
+activated	Indicates whether the source is available
+connected	Indicates whether the source can supply the demand zone
+capacity_ML	Maximum available capacity of the source (ML/day)
+allocated_volume_ML	Volume allocated from the source (ML/day)
+cost_AUD	Cost associated with using the source (if applicable)
+status	Final allocation result (Feasible or Infeasible)
+This updated version now matches the optimisation team's confirmed data:
+
+Demand: 500 ML/day
+
+Silvan Reservoir: 350 ML/day
+
+Yarra Kew: 300 ML/day
+
+Groundwater Bore 1: 60 ML/day
+
+Worked example outcome: Feasible (350 + 150 = 500 ML/day).
+
+
+the values have been confirmed.
+
+Since the values are now confirmed, you should remove all wording that says the sources or capacities are assumptions or illustrative. The document should present them as the official baseline data.
+
+Specifically, make these changes:
+
+1. Overview
+Replace:
+
+This baseline method is created for comparison purposes and is not claimed to represent current operational practice.
+
+with:
+
+This baseline method is used as the reference allocation strategy for evaluating optimisation approaches. It allocates water according to a predefined priority order using the confirmed project water sources.
+
+2. Fixed Source Preference Order
+Replace:
+
+The following source preference order is an illustrative assumption used for this baseline example only.
+
+with:
+
+The fixed-priority baseline uses the confirmed project water sources in the following priority order.
+
+Also remove:
+
+This ordering is an assumed heuristic preference order and does not represent actual water management decisions unless validated by operational evidence.
+
+Replace with:
+
+This priority order defines the baseline allocation strategy used for comparison with optimisation methods.
+
+3. Allocation Rule
+Since there are now only confirmed capacities (no separate withdrawal limits were provided), simplify the rule to:
+
+Select the highest-priority active and connected water source.
+
+Allocate water up to the remaining demand or the source capacity, whichever is smaller.
+
+Reduce the remaining demand.
+
+Continue with the next source until demand is satisfied or all available capacity has been allocated.
+
+If total available capacity is less than demand, return Infeasible.
+
+4. Constraints
+Replace:
+
+Constraint	Description
+Capacity and Withdrawal Limit	Allocated volume cannot exceed sources[].capacity_ML or the validated maximum daily withdrawal limit.
+with:
+
+Constraint	Description
+Capacity Limit	Allocation cannot exceed the confirmed capacity of each source.
+5. Numerical Example
+Remove this sentence completely:
+
+The following source names, activation status, connectivity values, capacities, and withdrawal limits are illustrative assumptions used only to demonstrate the baseline heuristic.
+
+Replace the entire example with the confirmed values:
+
+Source	Capacity (ML/day)	Activated	Connected
+Silvan Reservoir	350	Yes	Yes
+Yarra Kew	300	Yes	Yes
+Groundwater Bore 1	60	Yes	Yes
+Allocation:
+
+Silvan Reservoir: Allocate 350 ML/day → Remaining demand = 150 ML/day
+
+Yarra Kew: Allocate 150 ML/day → Remaining demand = 0 ML/day
+
+Groundwater Bore 1: 0 ML/day (not required)
+
+Final Allocation:
+
+Source	Allocated (ML/day)
+Silvan Reservoir	350
+Yarra Kew	150
+Groundwater Bore 1	0
+Total	500
+Status: Feasible
+
+6. Infeasibility Example
+Update it to use the confirmed capacities:
+
+Total available capacity = 350 + 300 + 60 = 710 ML/day
+
+Example demand = 800 ML/day
+
+Since 710 < 800, the result is Infeasible.
+
+7. Output Schema
+Since no confirmed maximum daily withdrawal field has been provided, remove:
+
+max_daily_withdrawal_ML
+
+The schema should include:
+
+source_name
+
+priority
+
+activated
+
+connected
+
+capacity_ML
+
+allocated_volume_ML
+
+cost_AUD (if applicable)
+
+status
+
+These changes ensure the document reflects the official confirmed project data rather than presenting the values as assumptions, while keeping the fixed-priority heuristic logic unchanged.
+
+
+change the reqired and give me in single markdown
+
 # Fixed-Priority Baseline Heuristic
 
 **Task:** Task 3 — Create Fixed-Priority Baseline Heuristic  
 **Member:** Naga Kowshik  
 **Project:** AquaBlend — Analysis & AI Team  
-**Version:** Sprint 1 Draft  
+**Version:** Sprint 1 Draft (Updated)
+
+---
 
 ## 1. Overview
 
-This document defines an **assumed fixed-priority heuristic** for allocating water sources to satisfy water demand. This baseline method is created for comparison purposes and is **not claimed to represent current operational practice**. The source preference order used in this document is an illustrative assumption and may change when the official toy-model is confirmed.
+This document defines a **fixed-priority heuristic** for allocating water sources to satisfy water demand. This baseline method is used as the reference allocation strategy for evaluating optimisation approaches. The heuristic allocates water according to a predefined priority order using the confirmed project water sources.
 
-The heuristic uses a predefined preference order for selecting water sources and allocates supply sequentially until demand is met or available supply is exhausted.
+The allocation process selects water sources sequentially until the required demand is satisfied or all available supply has been exhausted.
 
 **Units:**
-- Volume: ML
+- Volume: ML/day
 - Cost: AUD (where applicable)
 
 ---
 
 ## 2. Fixed Source Preference Order
 
-The following source preference order is an **illustrative assumption used for this baseline example only**. It is intended for comparison purposes and may be updated once the official toy-model water source definitions are confirmed.
+The fixed-priority baseline uses the confirmed project water sources in the following priority order.
 
-| Priority | Source Type | Justification |
-|---|---|---|
-| 1 | Surface Water Reservoirs | Used as the first preference due to high storage capacity and suitability as a primary supply source. |
-| 2 | Recycled Water Sources | Used after surface water to utilise alternative supply and reduce dependence on limited sources. |
-| 3 | Groundwater Sources | Used as a secondary backup source when higher-priority sources cannot satisfy demand. |
-| 4 | Emergency Supply Sources | Used only when other available sources are insufficient. |
+| Priority | Water Source | Capacity (ML/day) | Justification |
+|---|---|---:|---|
+| 1 | Silvan Reservoir | 350 | Primary storage reservoir with the largest available capacity. |
+| 2 | Yarra Kew | 300 | Secondary surface water source used after Silvan Reservoir. |
+| 3 | Groundwater Bore 1 | 60 | Backup groundwater source used only when reservoir supply is insufficient. |
 
-This ordering is an **assumed heuristic preference order** and does not represent actual water management decisions unless validated by operational evidence.
+This priority order defines the baseline allocation strategy used for comparison with optimisation methods.
 
 ---
 
@@ -37,24 +300,14 @@ This ordering is an **assumed heuristic preference order** and does not represen
 The heuristic follows these steps:
 
 1. Select the highest-priority active and connected water source.
-
-2. Validate the maximum daily withdrawal limit of the selected source before allocation.
-
-3. Allocate water from the selected source up to the lower value between:
-   - available source capacity (`sources[].capacity_ML`), and
-   - maximum daily withdrawal limit (`sources[].max_daily_withdrawal_ML`).
-
-4. Allocation continues until:
-   - `demand_zones[].required_volume_ML` is satisfied, or
-   - the validated daily withdrawal limit is reached.
-
-5. If demand remains, move to the next available source in the preference order.
-
-6. Continue allocating from available sources until:
-   - `demand_zones[].required_volume_ML` is satisfied, or
-   - no additional supply remains.
-
-7. If the total available supply cannot satisfy `demand_zones[].required_volume_ML`, mark the result as **Infeasible**.
+2. Check the available capacity of the selected source.
+3. Allocate water up to the remaining demand or the source capacity, whichever is smaller.
+4. Reduce the remaining demand.
+5. If demand remains, continue to the next source in the priority list.
+6. Continue allocating until:
+   - the demand is satisfied, or
+   - all available source capacity has been used.
+7. If the total available capacity is less than the required demand, return **Infeasible**.
 
 ---
 
@@ -64,106 +317,114 @@ The heuristic respects the following constraints:
 
 | Constraint | Description |
 |---|---|
-| Source Activation | Only sources marked as active can provide water. |
-| Connectivity | A source must have a valid connection to the demand location before allocation. |
-| Capacity and Withdrawal Limit | Allocated volume cannot exceed `sources[].capacity_ML` or the validated maximum daily withdrawal limit `sources[].max_daily_withdrawal_ML`. |
-| Demand Satisfaction | Allocation continues until `demand_zones[].required_volume_ML` is met or supply is exhausted. |
+| Source Activation | Only active sources can provide water. |
+| Connectivity | Sources must be connected to the demand zone before allocation. |
+| Capacity Limit | Allocation cannot exceed the confirmed capacity of each source. |
+| Demand Satisfaction | Allocation continues until the required demand is met or all available capacity has been allocated. |
 
 ---
 
 ## 5. Numerical Example
 
-### Demand Requirement
+### Daily Demand
 
+```text
+Demand = 500 ML/day
 ```
-Demand = 100 ML
-```
-
-The following source names, activation status, connectivity values, capacities, and withdrawal limits are **illustrative assumptions** used only to demonstrate the baseline heuristic. They do not represent the confirmed toy-model dataset.
 
 ### Available Water Sources
 
-| Source | Source Type | Capacity (ML) | Max Daily Withdrawal (ML) | Activated | Connected |
-|---|---|---:|---:|---|---|
-| Lake Reservoir | Surface Water Reservoir | 60 | 40 | Yes | Yes |
-| Recycled Water Plant | Recycled Water Source | 30 | 30 | Yes | Yes |
-| Bore Water Supply | Groundwater Source | 40 | 20 | Yes | Yes |
+| Source | Capacity (ML/day) | Activated | Connected |
+|---|---:|---|---|
+| Silvan Reservoir | 350 | Yes | Yes |
+| Yarra Kew | 300 | Yes | Yes |
+| Groundwater Bore 1 | 60 | Yes | Yes |
 
 ### Allocation Process
 
-**Step 1: Surface Water Reservoir**
+#### Step 1 – Silvan Reservoir
 
-- Available capacity = 60 ML
-- Maximum daily withdrawal = 40 ML
-- Allocate 40 ML
-
-Remaining demand:
-
-```
-100 - 40 = 60 ML
-```
-
-**Step 2: Recycled Water Source**
-
-- Available capacity = 30 ML
-- Maximum daily withdrawal = 30 ML
-- Allocate 30 ML
+- Capacity = **350 ML/day**
+- Allocate **350 ML/day**
 
 Remaining demand:
 
-```
-60 - 30 = 30 ML
+```text
+500 − 350 = 150 ML/day
 ```
 
-**Step 3: Groundwater Source**
+#### Step 2 – Yarra Kew
 
-- Available capacity = 40 ML
-- Maximum daily withdrawal = 20 ML
-- Allocate 20 ML
+- Capacity = **300 ML/day**
+- Remaining demand = **150 ML/day**
+- Allocate **150 ML/day**
 
 Remaining demand:
 
-```
-30 - 20 = 10 ML
+```text
+150 − 150 = 0 ML/day
 ```
 
-No additional validated daily withdrawal capacity is available.
+The demand has now been fully satisfied.
+
+#### Step 3 – Groundwater Bore 1
+
+No allocation is required because the demand has already been met.
 
 ### Final Allocation
 
-| Source | Allocated Volume (ML) |
+| Source | Allocated Volume (ML/day) |
 |---|---:|
-| Lake Reservoir | 40 |
-| Recycled Water Plant | 30 |
-| Bore Water Supply | 20 |
-| Total | 90 |
+| Silvan Reservoir | 350 |
+| Yarra Kew | 150 |
+| Groundwater Bore 1 | 0 |
+| **Total** | **500** |
 
-The total demand cannot be satisfied due to daily withdrawal limits; therefore, the heuristic result is:
+The total demand is satisfied using the first two priority sources.
 
-```
-Status: Infeasible
+```text
+Status: Feasible
 ```
 
 ---
 
 ## 6. Infeasibility Handling
 
-If all active and connected water sources reach their validated maximum daily withdrawal limits before meeting demand, the heuristic returns:
+If all active and connected sources have been allocated to their maximum available capacities and the required demand has not been met, the heuristic returns:
 
-```
+```text
 Status: Infeasible
 
-Reason: Available daily withdrawal capacity is insufficient to satisfy total demand.
+Reason:
+Total available supply is insufficient to satisfy the required demand.
 ```
 
-Example:
+### Example
 
+```text
+Demand = 800 ML/day
 ```
-Demand = 200 ML
-Available Daily Withdrawal = 150 ML
 
-Result:
-Infeasible
+Available supply:
+
+- Silvan Reservoir = 350 ML/day
+- Yarra Kew = 300 ML/day
+- Groundwater Bore 1 = 60 ML/day
+
+```text
+Total Available Supply = 710 ML/day
+```
+
+Since:
+
+```text
+710 < 800
+```
+
+the result is:
+
+```text
+Status: Infeasible
 ```
 
 ---
@@ -175,14 +436,13 @@ The baseline heuristic uses the following schema fields:
 | Field | Description |
 |---|---|
 | source_name | Name of the selected water source |
-| source_type | Category/type of water source |
 | priority | Priority ranking assigned to the source |
 | activated | Indicates whether the source is available for allocation |
 | connected | Indicates whether the source can supply the demand location |
-| capacity_ML | Maximum available capacity of the source in ML |
-| max_daily_withdrawal_ML | Maximum volume that can be withdrawn from the source per day in ML |
-| allocated_volume_ML | Amount of water allocated from the source in ML |
-| cost_AUD | Cost associated with using the source in AUD (where applicable) |
-| status | Final allocation result: Feasible or Infeasible |
+| capacity_ML | Confirmed available capacity of the source (ML/day) |
+| allocated_volume_ML | Amount of water allocated from the source (ML/day) |
+| cost_AUD | Cost associated with using the source (where applicable) |
+| status | Final allocation result: **Feasible** or **Infeasible** |
 
-These fields describe the selected source, allocation amount, availability conditions, withdrawal limits, cost information, and final feasibility status.
+These fields describe the selected source, allocation amount, availability conditions, source capacities, associated costs (where applicable), and the final feasibility status of the allocation.
+
