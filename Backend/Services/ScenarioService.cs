@@ -17,20 +17,23 @@ namespace AquaBlend.Services
         public async Task<List<ScenarioResponseDto>> GetAllAsync()
         {
             return await _context.Scenarios
-                .Select(s => new ScenarioResponseDto
-                {
-                    Id = s.Id,
-                    Name = s.Name,
-                    Description = s.Description,
-                    CreatedAt = s.CreatedAt,
-                    UpdatedAt = s.UpdatedAt
-                })
-                .ToListAsync();
+            .AsNoTracking()
+            .Select(s => new ScenarioResponseDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Description = s.Description,
+                CreatedAt = s.CreatedAt,
+                UpdatedAt = s.UpdatedAt
+            })
+            .ToListAsync();
         }
 
         public async Task<ScenarioResponseDto?> GetByIdAsync(int id)
         {
-            var scenario = await _context.Scenarios.FindAsync(id);
+            var scenario = await _context.Scenarios
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.Id == id);
 
             if (scenario == null)
                 return null;
@@ -50,8 +53,7 @@ namespace AquaBlend.Services
             var scenario = new Scenario
             {
                 Name = dto.Name,
-                Description = dto.Description,
-                CreatedAt = DateTime.UtcNow
+                Description = dto.Description
             };
 
             _context.Scenarios.Add(scenario);
@@ -76,7 +78,6 @@ namespace AquaBlend.Services
 
             scenario.Name = dto.Name;
             scenario.Description = dto.Description;
-            scenario.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 

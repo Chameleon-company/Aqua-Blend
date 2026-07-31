@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AquaBlend.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/scenarios")]
     public class ScenariosController : ControllerBase
     {
         private readonly ScenarioService _scenarioService;
@@ -22,7 +22,7 @@ namespace AquaBlend.Controllers
             return Ok(scenarios);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<ActionResult<ScenarioResponseDto>> GetById(int id)
         {
             var scenario = await _scenarioService.GetByIdAsync(id);
@@ -36,9 +36,6 @@ namespace AquaBlend.Controllers
         [HttpPost]
         public async Task<ActionResult<ScenarioResponseDto>> Create(CreateScenarioDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             var created = await _scenarioService.CreateAsync(dto);
 
             return CreatedAtAction(
@@ -47,12 +44,9 @@ namespace AquaBlend.Controllers
                 created);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, UpdateScenarioDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             var updated = await _scenarioService.UpdateAsync(id, dto);
 
             if (!updated)
@@ -61,7 +55,7 @@ namespace AquaBlend.Controllers
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _scenarioService.DeleteAsync(id);
