@@ -38,7 +38,7 @@ agreed the explanation should say.
 | --- | --- | --- |
 | `json_explainer.py` | The actual program. This is the deliverable. | Yes — this is what gets used |
 | `sample_explanations.txt` | Real output from the script, already run, saved to a file so you can read it without running anything | No — just open and read |
-| `test_json_explainer.py` | 55 automated checks confirming the script behaves correctly, and also contains a full copy of the example data (`REFERENCE_JSON`) that the script can be run against | Optional — run it to double-check everything still works |
+| `test_json_explainer.py` | 60 automated checks confirming the script behaves correctly, and also contains a full copy of the example data (`REFERENCE_JSON`) that the script can be run against | Optional — run it to double-check everything still works |
 | `README.md` | This file | No — just documentation |
 
 These four are Task 9's actual deliverables. There's no separate example-data file
@@ -54,9 +54,12 @@ Reads a Results JSON and produces six sections of plain-English explanation:
    and why; which were skipped, and why
 2. **Binding Constraints** — what limited the result (e.g. "demand had to be fully
    met, leaving no slack"), grouped in a fixed order (demand, then source-capacity,
-   then source-activation, then treatment-capacity, then water-quality) regardless
-   of what order the JSON lists them in, and flagged with ", estimated" when the
-   underlying figure is estimated rather than measured
+   then plant-capacity, then link-capacity, then water-quality) regardless of what
+   order the JSON lists them in, and flagged with ", estimated" when the underlying
+   source-capacity figure is estimated rather than measured (source_capacity is the
+   only category with a provenance mechanism in the confirmed contract; demand,
+   plant-capacity, link-capacity, and water-quality never disclose "(estimated)",
+   since none of them are tracked for provenance)
 3. **Water Quality & Safety Margins** — whether the treated water is safe, and which
    measurement is closest to its safety limit
 4. **Sensitivity to Key Assumptions** — which guessed/estimated inputs could change
@@ -107,7 +110,7 @@ a field and see what the script says about the missing data.
 
 ### `sample_explanations.txt` — pre-generated example outputs
 
-Nine examples, each showing the script's real output on a slightly different input.
+Ten examples, each showing the script's real output on a slightly different input.
 **Every one of these was produced by genuinely running `python3 json_explainer.py`
 as a real command** — not typed by hand, not simulated. Each is labelled with what's
 different about that scenario and why it's there:
@@ -118,11 +121,12 @@ different about that scenario and why it's there:
 | 2 | Solve marked as failed (`INFEASIBLE`) | The script doesn't try to explain a result that doesn't exist |
 | 3 | No water sources needed (zero demand) | Handles an "empty" result without crashing |
 | 4 | One water-quality reading pushed into failure | The script correctly flags unsafe water instead of saying everything's fine |
-| 5 | One source's cost missing, plus different limiting factors | Handles missing data, and shows constraint types Sample 1 doesn't |
+| 5 | One source's cost missing, plus a plant-capacity binding constraint | Handles missing data, and shows a constraint type Sample 1 doesn't |
 | 6 | One water-quality measurement missing entirely | Says "not reported," never assumes it passed |
 | 7 | The "what could change the answer" info missing | Shows the fallback message for that section |
 | 8 | The whole cost/pricing section missing | Cost shows as "not reported" instead of a guessed number |
 | 9 | Binding constraints listed out of order (water-quality first, demand last) | Output still renders in fixed category order, not JSON order |
+| 10 | Link-capacity constraints binding (source-to-plant and plant-to-zone) | A category that was missing entirely before this fix now renders correctly |
 
 **Why some of these look like real solver output but aren't:** Samples 2–8 are all the
 same reference scenario with one thing deliberately deleted or changed, purely to
@@ -139,7 +143,7 @@ thing (no guessing, no hardcoding) without ever showing a currency other than AU
 
 ### `test_json_explainer.py` — the automated checks
 
-55 tests. Running them checks that every rule described above actually holds — not
+60 tests. Running them checks that every rule described above actually holds — not
 just on the one example scenario, but on every unusual situation: missing data,
 failed solves, safety violations, and so on.
 
@@ -150,7 +154,7 @@ pip install pytest --break-system-packages
 python3 -m pytest test_json_explainer.py -v
 ```
 
-All 55 currently pass. You don't need to run this yourself to use the script — it's
+All 60 currently pass. You don't need to run this yourself to use the script — it's
 there so anyone reviewing or changing the code later can quickly confirm nothing
 broke.
 
@@ -175,42 +179,75 @@ figures must show their currency (AUD). The script now reads the currency from t
 data file itself — never hardcoded — so every dollar amount in the explanation stays
 consistent, and would automatically update if the currency ever changed.
 
-**Binding constraints were rebuilt after Task 7's template was substantially updated**
-(reviewed and approved by Archit on PR #9). Four things changed:
+**Field paths and binding-constraint matching were rebuilt against the confirmed
+output contract** (`model_output_contract.json` / `model_output_specification.md`),
+after review flagged that this script was still built against an earlier draft
+schema. Every field this script reads was renamed to match the confirmed contract:
 
-- **Output order.** Constraints now render grouped by a fixed category order —
-  demand, source-capacity, source-activation, treatment-capacity, water-quality —
-  regardless of what order the JSON lists them in. Sample 9 in
-  `sample_explanations.txt` demonstrates this directly.
-- **Estimated-value disclosure.** A constraint's figure now gets ", estimated"
-  appended inside its existing parenthetical when `data_flags.estimated_fields[]`
-  flags it. This is a real, visible change: even the reference scenario's own
-  capacity constraint now reads "(290 ML, estimated)" instead of "(290 ML)",
-  because `cost_per_ML (all sources)` matches the template's "or 'all sources'"
-  trigger. **Worth flagging to Archit/Trminh:** that trigger is implemented
-  literally here, so any mention of "all sources" anywhere in `estimated_fields`
-  marks a source's capacity as estimated too, even when the flagged entry is
-  actually about a different field (cost, not capacity) for all sources — the same
-  kind of over-broad match already flagged in Task 6's template.
-- **Missing-field handling.** Previously, a missing field (e.g. `volume_drawn_ML`)
-  would print literally as the word "None" inside the sentence. Now the whole
-  clause carrying that figure is dropped instead, and the sentence still reads
-  correctly. A missing name (`source_name`, `facility_name`) falls back to the
-  matching id rather than printing "None".
-- **Singular batch.** "1 batch" instead of "1 batches" when a facility processed
-  exactly one batch.
+- `cost_per_ML` → `cost_per_ml`, `required_volume_ML` → `demand_ml_per_day`,
+  `volume_drawn_ML` → `volume_drawn_ml_per_day`
+- `treatment_facilities` → `plants`, `facility_id`/`facility_name` →
+  `plant_id`/`plant_name`
+- `water_quality.after_treatment` → `water_quality.by_plant.<plant_id>`, since the
+  confirmed contract reports quality per plant, not once for the whole scenario
+- `data_flags.estimated_fields[]` (a flat string list) → `data_flags.sources[]`
+  (per-source `has_estimated_values` boolean plus a `provenance` breakdown) and
+  `data_flags.notes[]`
+
+Binding-constraint names also changed from suffix-based to prefix-based
+(`yarra_kew_capacity` → `source_capacity_yarra_kew`, `facility_1_batch_capacity` →
+`plant_capacity_facility_1`, `pH_range` → `quality_range_pH_facility_1`, now
+carrying the plant id since quality is per-plant). Two categories were retired
+outright rather than renamed:
+
+- **Source-activation** no longer appears, because it's a logical constraint
+  (`γ_st ≤ α_s`), and the confirmed contract explicitly excludes logical
+  constraints from `binding_constraints_summary` — they can never actually show up
+  here, so keeping a rendering branch for them was dead code.
+- **Batch counting** ("500 ML across 5 batches") is gone, because the confirmed
+  formulation has zero integer variables (`diagnostics.num_integer_variables` is
+  always `0`) — there's nothing to count in batches anymore.
+
+**One category was missing entirely, not just misnamed: `link_capacity`.**
+Cross-checking against the confirmed output spec (Section 3.8) after the field-path
+fix turned up a real gap — `link_capacity_<from>_to_<to>` is a genuine `inequality`
+constraint that can legitimately appear in `binding_constraints_summary`, but had no
+rendering branch at all, so it would have silently fallen into the generic "no
+plain-language mapping available" wording. It's now handled: the id portion after
+`link_capacity_` is the exact `path_id` used in `transfer_paths` (both
+`source_to_plant` and `plant_to_zone` arrays), so it's a direct lookup, not string
+parsing. Since the output contract doesn't echo a link's own maximum flow (that's
+input-only), this reports the flow that was reached rather than claiming to know a
+specific cap. Sample 10 in `sample_explanations.txt` demonstrates both link types.
+
+**Estimated-value disclosure was also simplified, not just renamed.** The old
+"(estimated)" tagging matched free text against a flat `estimated_fields[]` list,
+which was flagged as an over-broad hack (a mention of "all sources" anywhere would
+mark a source's capacity as estimated, even when the flagged entry was actually
+about a different field). That's replaced with a direct read of each source's own
+`data_flags.sources[].has_estimated_values` boolean — cleaner, and the ambiguity is
+gone rather than just hidden. Per the confirmed contract's own "known gaps"
+(Section 6), only source fields carry this provenance mechanism at all; demand,
+plant capacity, and quality limits don't, so those categories never attempt to
+guess at "(estimated)" anymore.
+
+**Wording was updated per review too:** "treated-water quality" / "water quality
+after treatment" / "safe to drink" all became "plant-inflow blend quality"
+throughout, since `water_quality.by_plant` reports the blend arriving at a plant,
+not final treated water — the confirmed formulation has no post-treatment removal
+term, so there's nothing else to report.
 
 ---
 
 ## 4. Required vs. optional data
 
 **Required** — the script refuses to run without these, with a clear error message:
-`status`, `sources`, `water_quality.after_treatment`, `binding_constraints_summary[]`.
+`status`, `sources`, `water_quality.by_plant`, `binding_constraints_summary[]`.
 Without these there's nothing coherent to explain.
 
 **Optional** — missing values are handled gracefully, never crash the script:
-`cost_per_ML` on any source, `data_flags.estimated_fields[]`, `demand_zones[]`,
-`treatment_facilities`, `objective`, individual constraint details.
+`cost_per_ml` on any source, `data_flags.sources[].has_estimated_values`,
+`demand_zones[]`, `plants`, `objective`, individual constraint details.
 
 ---
 
@@ -241,16 +278,16 @@ so instead of filling the gap with something that sounds plausible.
   output** — only against a made-up version of the reference JSON with the sources
   deleted. Worth confirming with the Optimisation team whether that's even a real
   situation the solver can produce.
-- **This shouldn't be merged ahead of Tasks 6, 7, and 8** — as of this version, none
-  of those three have the required approvals yet, and this script is built directly
-  on their current wording. If any of them change in review, the matching part of
-  this script needs a matching update.
 - **Every PR in this repo has needed a second reviewer before merge, without
   exception** — including ones with only minor feedback. Don't expect one approval to
   be enough.
-- **The "all sources" estimated-disclosure trigger for binding constraints is a
-  literal reading of an ambiguous template rule, not a confirmed interpretation.**
-  See the binding-constraints bullet in Section 3 above — worth a direct confirm
-  from Archit or Trminh before this merges, since it currently makes any capacity
-  constraint show as estimated whenever *any* field is flagged estimated for all
-  sources, not just capacity specifically.
+
+**Resolved since the last review round:**
+
+- Tasks 6, 7, and 8 are now merged, so this script's dependency on their wording is
+  no longer a moving target.
+- The old "all sources" estimated-disclosure ambiguity (any mention of "all sources"
+  in a flat string list marking unrelated fields as estimated) is gone, not just
+  narrowed — disclosure now reads a clean per-source `has_estimated_values` boolean
+  from the confirmed output contract, so there's no longer a literal-reading judgment
+  call to make.

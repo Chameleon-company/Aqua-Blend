@@ -38,12 +38,12 @@ function does not.
 Required vs. optional input
 ----------------------------
 Required (raises ExplainerInputError if missing): status, sources,
-water_quality.after_treatment, binding_constraints_summary. Without these
+water_quality.by_plant, binding_constraints_summary. Without these
 the script cannot produce a coherent explanation at all.
 
 Optional (missing values are handled gracefully, never crash the script):
-cost_per_ML on any source, data_flags.estimated_fields, demand_zones,
-treatment_facilities, per-constraint slack values.
+cost_per_ml on any source, data_flags.sources[].has_estimated_values,
+demand_zones, plants, per-constraint slack values.
 
 This required/optional split is a project decision made for Task 9 and
 should be confirmed with the wider team, the same way Task 6 flagged its
@@ -65,14 +65,13 @@ F_SOURCES = "sources"
 F_SELECTED = "selected"
 F_UNUSED = "unused"
 F_DEMAND_ZONES = "demand_zones"
-F_TREATMENT_FACILITIES = "treatment_facilities"
+F_PLANTS = "plants"
 F_ACTIVE = "active"
 F_WATER_QUALITY = "water_quality"
-F_AFTER_TREATMENT = "after_treatment"
+F_BY_PLANT = "by_plant"
 F_BINDING_SUMMARY = "binding_constraints_summary"
 F_SENSITIVITY = "sensitivity_to_key_assumptions"
 F_DATA_FLAGS = "data_flags"
-F_ESTIMATED_FIELDS = "estimated_fields"
 
 REQUIRED_TOP_LEVEL_FIELDS = [F_STATUS, F_SOURCES, F_WATER_QUALITY, F_BINDING_SUMMARY]
 
@@ -111,9 +110,9 @@ def validate_input(data: dict) -> None:
             "Cannot generate an explanation without these."
         )
 
-    if F_AFTER_TREATMENT not in data.get(F_WATER_QUALITY, {}):
+    if F_BY_PLANT not in data.get(F_WATER_QUALITY, {}):
         raise ExplainerInputError(
-            f"Missing required field: {F_WATER_QUALITY}.{F_AFTER_TREATMENT}."
+            f"Missing required field: {F_WATER_QUALITY}.{F_BY_PLANT}."
         )
 
 
@@ -135,18 +134,25 @@ def _ordinal(n: int) -> str:
     return ORDINAL_WORDS.get(n, f"{n}th")
 
 
-def _mentions(hint: str, estimated_fields: list) -> bool:
-    hint = (hint or "").lower()
-    return any(hint in ef.lower() for ef in estimated_fields)
-
-
 def _cost_ranking(all_sources: list) -> list:
-    """Rank every source with a numeric cost_per_ML, ascending. Sources
-    with no cost_per_ML are excluded from ranking (Section 7 of the
+    """Rank every source with a numeric cost_per_ml, ascending. Sources
+    with no cost_per_ml are excluded from ranking (Section 7 of the
     template)."""
-    costed = [s for s in all_sources if s.get("cost_per_ML") is not None]
-    costed_sorted = sorted(costed, key=lambda s: s["cost_per_ML"])
+    costed = [s for s in all_sources if s.get("cost_per_ml") is not None]
+    costed_sorted = sorted(costed, key=lambda s: s["cost_per_ml"])
     return [s["source_id"] for s in costed_sorted]
+
+
+def _source_data_flags(data: dict) -> dict:
+    """Maps source_id -> its data_flags.sources[] entry, per the confirmed
+    output contract (Section 3.11). Provenance is echoed straight from the
+    database view per source, so 'is this estimated' is now a direct
+    boolean lookup rather than the old free-text substring matching this
+    script used against a flat estimated_fields[] list - that approach was
+    flagged as an over-broad hack (see the old 'all sources' open item) and
+    is retired now that a clean per-source signal exists."""
+    entries = data.get(F_DATA_FLAGS, {}).get(F_SOURCES, []) or []
+    return {e.get("source_id"): e for e in entries if e.get("source_id")}
 
 
 def explain_sources(data: dict) -> str:
@@ -154,8 +160,8 @@ def explain_sources(data: dict) -> str:
     selected = sources.get(F_SELECTED, []) or []
     unused = sources.get(F_UNUSED, []) or []
     binding = data.get(F_BINDING_SUMMARY, []) or []
-    estimated_fields = data.get(F_DATA_FLAGS, {}).get(F_ESTIMATED_FIELDS, []) or []
-    # cost_per_ML has no currency field of its own anywhere in the contract -
+    source_flags = _source_data_flags(data)
+    # cost_per_ml has no currency field of its own anywhere in the contract -
     # objective.currency is the only currency the JSON actually states, so it's
     # applied here too rather than assuming AUD. Per rubric C7 ("cost uses AUD"),
     # every dollar figure in the explanation must carry a currency, not just the
@@ -177,12 +183,12 @@ def explain_sources(data: dict) -> str:
             source_id = s.get("source_id")
             name = s.get("source_name", source_id)
             pct = s.get("percent_of_blend")
-            vol = round(s.get("volume_drawn_ML", 0))
-            cost = s.get("cost_per_ML")
-            capacity_binding = f"{source_id}_capacity" in binding
+            vol = round(s.get("volume_drawn_ml_per_day", 0))
+            cost = s.get("cost_per_ml")
+            capacity_binding = f"source_capacity_{source_id}" in binding
 
             if cost is None:
-                # Section 7: missing cost_per_ML on a selected source
+                # Section 7: missing cost_per_ml on a selected source
                 reason_clause = ("it was included in the optimal blend to help meet "
                                   "demand at minimum total cost")
                 sentence = f"{name} supplied {pct}% of the blend ({vol} ML), because {reason_clause}."
@@ -204,9 +210,8 @@ def explain_sources(data: dict) -> str:
                     reason_clause = ("it was included in the optimal blend to help meet demand "
                                       "at minimum total cost")
 
-                estimated_tag = " (estimated)" if (
-                    _mentions("cost_per_ML", estimated_fields) or _mentions(source_id, estimated_fields)
-                ) else ""
+                has_estimated = bool(source_flags.get(source_id, {}).get("has_estimated_values"))
+                estimated_tag = " (estimated)" if has_estimated else ""
                 currency_str = f" {currency}" if currency else ""
                 sentence = (f"{name} supplied {pct}% of the blend ({vol} ML) at "
                             f"${cost:.2f}{currency_str}/ML{estimated_tag}, because {reason_clause}.")
@@ -227,25 +232,27 @@ def explain_sources(data: dict) -> str:
 # ---------------------------------------------------------------------------
 # Task 7 - Binding constraints explanation (Template_BindingConstraints.md)
 #
-# Updated to match the template's latest revision (approved on PR #9), which
-# added four requirements beyond the original version this file was first
-# built against:
-#   1. Output composition: group by fixed category order (Demand,
-#      Source-capacity, Source-activation, Treatment-capacity, Water-quality),
-#      not JSON order.
-#   2. Estimated-value disclosure: append ", estimated" inside the existing
-#      parenthetical when data_flags.estimated_fields flags the relevant
-#      figure.
-#   3. Missing-field handling: an entry that IS found but is missing a
-#      "detail" field (a volume, count, limit, unit) drops just that clause,
-#      not the whole sentence. A missing "identity" field (source_name,
-#      facility_name) falls back to the matching id.
-#   4. Singular/plural: "1 batch" vs "N batches".
+# Rebuilt against the confirmed model_output_contract.json (Section 3.8):
+#   - Constraint names are now prefix-based, not suffix-based, e.g.
+#     source_capacity_yarra_kew (was yarra_kew_capacity), plant_capacity_
+#     facility_1 (was facility_1_batch_capacity), quality_range_pH_facility_1
+#     (was pH_range - now carries a plant id, since quality is reported
+#     per-plant under water_quality.by_plant).
+#   - treatment_facilities became plants; facility_id/facility_name became
+#     plant_id/plant_name; there is no batch count anymore (the confirmed
+#     formulation has zero integer variables, per diagnostics.
+#     num_integer_variables), so all "N batches" wording is removed.
+#   - Estimated-value disclosure no longer reads a flat estimated_fields[]
+#     string list. Per the output spec's "known gaps" (Section 6), only
+#     source fields carry a provenance mechanism (data_flags.sources[]);
+#     demand, plant capacity, link capacity, and quality limits are defined
+#     in the scenario file and have none. So only source_capacity lines can
+#     honestly disclose "(estimated)" here; the demand/plant_capacity/
+#     water_quality categories no longer attempt to guess at this.
 # ---------------------------------------------------------------------------
 
 CATEGORY_ORDER = [
-    "demand", "source_capacity", "source_activation",
-    "treatment_capacity", "water_quality",
+    "demand", "source_capacity", "plant_capacity", "link_capacity", "water_quality",
 ]
 
 
@@ -255,76 +262,41 @@ def _round_ml(value):
     return round(value) if value is not None else None
 
 
-def _batch_noun(n) -> str:
-    return "batch" if n == 1 else "batches"
-
-
-def _estimated_disclosure(category: str, estimated_fields: list, **kwargs) -> str:
-    """Returns ', estimated' if the relevant figure for this category is
-    flagged in data_flags.estimated_fields, per the template's disclosure
-    table. Empty string otherwise. source_activation never discloses - it
-    quotes no figure.
-
-    Open item for the team: the Source-capacity rule is written as "capacity,
-    together with the source's name or id, OR 'all sources'" - read literally,
-    a standalone 'all sources' mention triggers disclosure even when that
-    entry is actually about a different field (e.g. cost_per_ML) for all
-    sources, not capacity specifically. This is the same kind of over-broad
-    match already flagged in Task 6's template (Section 8) and is implemented
-    literally here rather than silently narrowed - worth confirming with
-    Archit/Trminh whether 'all sources' alone should be sufficient.
-    """
-    fields = estimated_fields or []
-
-    def mentions(*hints):
-        return any(any(h and h.lower() in ef.lower() for h in hints) for ef in fields)
-
-    if category == "demand":
-        zone_id = kwargs.get("zone_id")
-        return ", estimated" if mentions("required_volume_ML", f"demand for {zone_id}") else ""
-
-    if category == "source_capacity":
-        source_id = kwargs.get("source_id")
-        source_name = kwargs.get("source_name")
-        has_capacity_and_name = any(
-            "capacity" in ef.lower() and (
-                (source_id and source_id.lower() in ef.lower())
-                or (source_name and source_name.lower() in ef.lower())
-            )
-            for ef in fields
-        )
-        return ", estimated" if (has_capacity_and_name or mentions("all sources")) else ""
-
-    if category == "treatment_capacity":
-        return ", estimated" if mentions("treatment facility capacity", "batches", "dosing rates") else ""
-
-    if category == "water_quality":
-        parameter = kwargs.get("parameter")
-        return ", estimated" if mentions("quality readings", parameter) else ""
-
-    return ""
-
-
 def _classify_constraint(name: str) -> str:
     """Returns the category a constraint NAME belongs to, by pattern alone -
     independent of whether a matching entry actually exists. Classification
     drives Output-composition ordering; lookup success is decided separately
-    when rendering (No-matching-entry case)."""
+    when rendering (No-matching-entry case). Matches the confirmed contract's
+    prefix-based naming (Section 3.8)."""
     if name.startswith("demand_satisfaction_"):
         return "demand"
-    if name.endswith("_batch_capacity"):
-        return "treatment_capacity"
-    if name.endswith("_capacity"):
+    if name.startswith("source_capacity_"):
         return "source_capacity"
-    if name.endswith("_activation"):
-        return "source_activation"
-    if name.endswith("_range"):
+    if name.startswith("plant_capacity_"):
+        return "plant_capacity"
+    if name.startswith("link_capacity_"):
+        return "link_capacity"
+    if name.startswith("quality_range_"):
         return "water_quality"
     return "unknown"
 
 
+def _split_quality_name(name: str) -> tuple:
+    """quality_range_<parameter>_<plant_id> - parameter is one of the three
+    known quality parameters, so split on the first match rather than
+    guessing where the parameter ends and the plant id begins."""
+    remainder = name[len("quality_range_"):]
+    for param in EXPECTED_QUALITY_PARAMETERS:
+        prefix = f"{param}_"
+        if remainder.startswith(prefix):
+            return param, remainder[len(prefix):]
+        if remainder == param:
+            return param, None
+    return None, None
+
+
 def _render_constraint(category, name, selected, unused, demand_zones,
-                        facilities, quality, estimated_fields) -> str:
+                        plants, links, quality_by_plant, source_flags) -> str:
     """Renders one binding-constraint sentence. Falls back to the Unknown
     wording if the id encoded in `name` has no matching entry at all
     (No-matching-entry case); drops individual detail clauses, rather than
@@ -338,28 +310,26 @@ def _render_constraint(category, name, selected, unused, demand_zones,
         zone = demand_zones.get(zone_id)
         if not zone:
             return unknown_wording
-        vol = _round_ml(zone.get("required_volume_ML"))
+        vol = _round_ml(zone.get("demand_ml_per_day"))
         if vol is None:
             return (
                 f"The solution was limited by the water demand for {zone_id}: the full "
                 f"volume needed by {zone_id} had to be delivered, leaving no room to "
                 "supply any less."
             )
-        tag = _estimated_disclosure("demand", estimated_fields, zone_id=zone_id)
-        estimated_suffix = " (estimated)" if tag else ""
         return (
             f"The solution was limited by the water demand for {zone_id}: the full "
-            f"{vol} ML{estimated_suffix} needed by {zone_id} had to be delivered, "
+            f"{vol} ML needed by {zone_id} had to be delivered, "
             "leaving no room to supply any less."
         )
 
     if category == "source_capacity":
-        source_id = name[: -len("_capacity")]
+        source_id = name[len("source_capacity_"):]
         s = selected.get(source_id)
         if not s:
             return unknown_wording
         source_name = s.get("source_name") or source_id
-        vol = _round_ml(s.get("volume_drawn_ML"))
+        vol = _round_ml(s.get("volume_drawn_ml_per_day"))
         binding_label = f"the available capacity of {source_name}"
         if vol is None:
             return (
@@ -367,72 +337,91 @@ def _render_constraint(category, name, selected, unused, demand_zones,
                 "drawn up to the most its capacity allows, so any additional water "
                 "had to come from other sources."
             )
-        tag = _estimated_disclosure("source_capacity", estimated_fields,
-                                     source_id=source_id, source_name=source_name)
+        has_estimated = bool(source_flags.get(source_id, {}).get("has_estimated_values"))
+        tag = ", estimated" if has_estimated else ""
         return (
             f"The solution was limited by {binding_label}: {source_name} was drawn "
             f"up to the most its capacity allows ({vol} ML{tag}), so any additional "
             "water had to come from other sources."
         )
 
-    if category == "source_activation":
-        source_id = name[: -len("_activation")]
-        if source_id in selected:
-            s = selected[source_id]
-            source_name = s.get("source_name") or source_id
-            return (
-                f"The solution was limited by whether {source_name} is switched on: "
-                f"{source_name} had to be switched fully on rather than partly used, "
-                "and that is what allowed it into the blend."
-            )
-        if source_id in unused:
-            s = unused[source_id]
-            source_name = s.get("source_name") or source_id
-            return (
-                f"The solution was limited by whether {source_name} is switched on: "
-                f"{source_name} was left switched off entirely rather than partly "
-                "used, so none of it could enter the blend."
-            )
-        return unknown_wording
-
-    if category == "treatment_capacity":
-        facility_id = name[: -len("_batch_capacity")]
-        f = facilities.get(facility_id)
-        if not f:
+    if category == "plant_capacity":
+        plant_id = name[len("plant_capacity_"):]
+        p = plants.get(plant_id)
+        if not p:
             return unknown_wording
-        facility_name = f.get("facility_name") or facility_id
-        vol = _round_ml(f.get("volume_processed_ML"))
-        batches = f.get("treatment_batches")
-        binding_label = f"the processing capacity of {facility_name}"
-        if vol is None or batches is None:
+        plant_name = p.get("plant_name") or plant_id
+        vol = _round_ml(p.get("volume_processed_ml_per_day"))
+        binding_label = f"the processing capacity of {plant_name}"
+        if vol is None:
             return (
-                f"The solution was limited by {binding_label}: {facility_name} was "
+                f"The solution was limited by {binding_label}: {plant_name} was "
                 "already treating as much as it can handle, leaving no spare capacity."
             )
-        tag = _estimated_disclosure("treatment_capacity", estimated_fields)
         return (
-            f"The solution was limited by {binding_label}: {facility_name} was "
-            f"already treating as much as it can handle ({vol} ML across {batches} "
-            f"{_batch_noun(batches)}{tag}), leaving no spare capacity."
+            f"The solution was limited by {binding_label}: {plant_name} was "
+            f"already treating as much as it can handle ({vol} ML), leaving no "
+            "spare capacity."
+        )
+
+    if category == "link_capacity":
+        # link_capacity_<from>_to_<to> - the id portion is exactly the
+        # matching entry's own path_id (per the input spec's own naming
+        # convention: path_id is "<from>_to_<to>"), so no from/to parsing
+        # is needed, just a direct lookup. The output contract does not
+        # echo a link's own maximum_flow_ml_per_day (that's input-only),
+        # so this can report the flow that was reached, not a specific cap.
+        path_id = name[len("link_capacity_"):]
+        entry = links.get(path_id)
+        if not entry:
+            return unknown_wording
+        layer, path = entry
+        vol = _round_ml(path.get("flow_ml_per_day"))
+        if layer == "source_to_plant":
+            source_id = path.get("source_id")
+            plant_id = path.get("plant_id")
+            s = selected.get(source_id) or unused.get(source_id)
+            from_name = (s.get("source_name") if s else None) or source_id
+            p = plants.get(plant_id)
+            to_name = (p.get("plant_name") if p else None) or plant_id
+        else:
+            plant_id = path.get("plant_id")
+            zone_id = path.get("zone_id")
+            p = plants.get(plant_id)
+            from_name = (p.get("plant_name") if p else None) or plant_id
+            z = demand_zones.get(zone_id)
+            to_name = (z.get("zone_name") if z else None) or zone_id
+        binding_label = f"the connection from {from_name} to {to_name}"
+        if vol is None:
+            return (
+                f"The solution was limited by {binding_label}: this link was carrying "
+                "as much flow as it can handle, so any additional water had to route "
+                "another way."
+            )
+        return (
+            f"The solution was limited by {binding_label}: this link was carrying as "
+            f"much flow as it can handle ({vol} ML), so any additional water had to "
+            "route another way."
         )
 
     if category == "water_quality":
-        parameter = name[: -len("_range")]
-        q = quality.get(parameter)
+        parameter, plant_id = _split_quality_name(name)
+        if parameter is None or plant_id is None:
+            return unknown_wording
+        q = quality_by_plant.get(plant_id, {}).get(parameter)
         if not q:
             return unknown_wording
         cmin, cmax, unit = q.get("constraint_min"), q.get("constraint_max"), q.get("unit")
-        binding_label = f"the {parameter} limit"
+        binding_label = f"the {parameter} limit at {plant_id}"
         if cmin is None or cmax is None or unit is None:
             return (
                 f"The solution was limited by {binding_label}: {parameter} sat right "
                 "at the edge of its safe range, so the blend could not be pushed any "
                 "further."
             )
-        tag = _estimated_disclosure("water_quality", estimated_fields, parameter=parameter)
         return (
             f"The solution was limited by {binding_label}: {parameter} sat right at "
-            f"the edge of its safe range ({cmin}\u2013{cmax} {unit}{tag}), so the "
+            f"the edge of its safe range ({cmin}\u2013{cmax} {unit}), so the "
             "blend could not be pushed any further."
         )
 
@@ -448,12 +437,20 @@ def explain_binding_constraints(data: dict) -> str:
     selected = {s["source_id"]: s for s in sources.get(F_SELECTED, []) or []}
     unused = {s["source_id"]: s for s in sources.get(F_UNUSED, []) or []}
     demand_zones = {z["zone_id"]: z for z in data.get(F_DEMAND_ZONES, []) or []}
-    facilities = {
-        f["facility_id"]: f
-        for f in data.get(F_TREATMENT_FACILITIES, {}).get(F_ACTIVE, []) or []
+    plants = {
+        p["plant_id"]: p
+        for p in data.get(F_PLANTS, {}).get(F_ACTIVE, []) or []
     }
-    quality = data.get(F_WATER_QUALITY, {}).get(F_AFTER_TREATMENT, {}) or {}
-    estimated_fields = data.get(F_DATA_FLAGS, {}).get(F_ESTIMATED_FIELDS, []) or []
+    transfer_paths = data.get("transfer_paths", {}) or {}
+    links = {}
+    for path in transfer_paths.get("source_to_plant", []) or []:
+        if path.get("path_id"):
+            links[path["path_id"]] = ("source_to_plant", path)
+    for path in transfer_paths.get("plant_to_zone", []) or []:
+        if path.get("path_id"):
+            links[path["path_id"]] = ("plant_to_zone", path)
+    quality_by_plant = data.get(F_WATER_QUALITY, {}).get(F_BY_PLANT, {}) or {}
+    source_flags = _source_data_flags(data)
 
     # Output composition: group by fixed category order; within a category,
     # keep the order names appear in binding_constraints_summary. Names that
@@ -469,7 +466,7 @@ def explain_binding_constraints(data: dict) -> str:
         for name in buckets[category]:
             lines.append(_render_constraint(
                 category, name, selected, unused, demand_zones,
-                facilities, quality, estimated_fields
+                plants, links, quality_by_plant, source_flags
             ))
     for name in unknown_bucket:
         lines.append(f"The solution was limited by {name} (no plain-language mapping available).")
@@ -482,68 +479,67 @@ def explain_binding_constraints(data: dict) -> str:
 # ---------------------------------------------------------------------------
 
 def explain_quality_and_margins(data: dict) -> str:
-    after = data.get(F_WATER_QUALITY, {}).get(F_AFTER_TREATMENT, {}) or {}
-    estimated_fields = data.get(F_DATA_FLAGS, {}).get(F_ESTIMATED_FIELDS, []) or []
+    by_plant = data.get(F_WATER_QUALITY, {}).get(F_BY_PLANT, {}) or {}
+
+    if not by_plant:
+        return "No plant-inflow blend quality was reported for this scenario."
 
     lines = []
+    for plant_id, after in by_plant.items():
+        after = after or {}
 
-    # Missing parameters - never assume a pass
-    for p in EXPECTED_QUALITY_PARAMETERS:
-        if p not in after:
-            lines.append(f"{p} was not reported in the results and could not be assessed.")
+        # Missing parameters - never assume a pass
+        for p in EXPECTED_QUALITY_PARAMETERS:
+            if p not in after:
+                lines.append(f"{p} at {plant_id} was not reported in the results and could not be assessed.")
 
-    # Unit validation
-    for param, q in after.items():
-        if param not in QUALITY_UNIT_RULES:
-            continue
-        expected_unit = QUALITY_UNIT_RULES[param]
-        actual_unit = q.get("unit")
-        if expected_unit is None:
-            if actual_unit not in (None, "pH", ""):
+        # Unit validation
+        for param, q in after.items():
+            if param not in QUALITY_UNIT_RULES:
+                continue
+            expected_unit = QUALITY_UNIT_RULES[param]
+            actual_unit = q.get("unit")
+            if expected_unit is None:
+                if actual_unit not in (None, "pH", ""):
+                    lines.append(
+                        f"Note: unit mismatch for {param} at {plant_id} - expected no "
+                        f"concentration unit, got '{actual_unit}'."
+                    )
+            elif actual_unit != expected_unit:
                 lines.append(
-                    f"Note: unit mismatch for {param} - expected no concentration unit, "
-                    f"got '{actual_unit}'."
+                    f"Note: unit mismatch for {param} at {plant_id} - expected "
+                    f"'{expected_unit}', got '{actual_unit}'."
                 )
-        elif actual_unit != expected_unit:
-            lines.append(
-                f"Note: unit mismatch for {param} - expected '{expected_unit}', "
-                f"got '{actual_unit}'."
-            )
 
-    passing, violations = [], []
-    for param, q in after.items():
-        status = q.get("status")
-        margin = q.get("safety_margin_percent")
-        is_violation = status == "FAIL" or (margin is not None and margin < 0)
-        (violations if is_violation else passing).append((param, q))
+        passing, violations = [], []
+        for param, q in after.items():
+            status = q.get("status")
+            margin = q.get("safety_margin_percent")
+            is_violation = status == "FAIL" or (margin is not None and margin < 0)
+            (violations if is_violation else passing).append((param, q))
 
-    if violations:
-        for param, q in violations:
+        if violations:
+            for param, q in violations:
+                lines.append(
+                    f"Not all plant-inflow blend quality parameters passed at {plant_id}. "
+                    f"{param} breached its allowed range: {q.get('value')} {q.get('unit')} "
+                    f"against a permitted {q.get('constraint_min')}-{q.get('constraint_max')} "
+                    f"{q.get('unit')} (safety margin {q.get('safety_margin_percent')}%). This "
+                    "is treated as a violation and must be resolved before the blend is "
+                    "acceptable."
+                )
+        elif passing:
+            tightest = min(passing, key=lambda pq: pq[1].get("safety_margin_percent", float("inf")))
+            widest = max(passing, key=lambda pq: pq[1].get("safety_margin_percent", float("-inf")))
+            t_name, t_q = tightest
             lines.append(
-                f"Not all quality parameters passed. {param} breached its allowed range: "
-                f"{q.get('value')} {q.get('unit')} against a permitted "
-                f"{q.get('constraint_min')}-{q.get('constraint_max')} {q.get('unit')} "
-                f"(safety margin {q.get('safety_margin_percent')}%). This is treated as a "
-                "violation and must be resolved before the blend is acceptable."
+                f"All tested plant-inflow blend quality parameters passed at {plant_id}. "
+                f"{t_name} was closest to its limit, with a safety margin of "
+                f"{t_q.get('safety_margin_percent')}%."
             )
-    elif passing:
-        tightest = min(passing, key=lambda pq: pq[1].get("safety_margin_percent", float("inf")))
-        widest = max(passing, key=lambda pq: pq[1].get("safety_margin_percent", float("-inf")))
-        t_name, t_q = tightest
-        lines.append(
-            f"All tested quality parameters passed. {t_name} was closest to its limit, "
-            f"with a safety margin of {t_q.get('safety_margin_percent')}%."
-        )
-        if widest[0] != tightest[0]:
-            w_name, w_q = widest
-            lines.append(f"The widest margin was on {w_name} at {w_q.get('safety_margin_percent')}%.")
-
-    for field in estimated_fields:
-        if any(param.lower() in field.lower() for param in after):
-            lines.append(
-                f"Note: this assessment relies on estimated data for {field} and should "
-                "be treated as provisional."
-            )
+            if widest[0] != tightest[0]:
+                w_name, w_q = widest
+                lines.append(f"The widest margin at {plant_id} was on {w_name} at {w_q.get('safety_margin_percent')}%.")
 
     return "\n\n".join(lines)
 
@@ -576,16 +572,41 @@ def explain_sensitivity(data: dict) -> str:
 
 
 def explain_estimated_fields(data: dict) -> str:
-    """Standalone aggregate list of every estimated field, distinct from
-    the inline '(estimated)' tags Task 6/8 attach to individual sentences."""
-    estimated_fields = data.get(F_DATA_FLAGS, {}).get(F_ESTIMATED_FIELDS, []) or []
-    if not estimated_fields:
+    """Standalone aggregate list of every source with estimated values,
+    plus any free-text notes. Rebuilt against the confirmed output
+    contract (Section 3.11): data_flags is now data_flags.sources[]
+    (per-source has_estimated_values + provenance) and data_flags.notes[],
+    not a flat estimated_fields[] string list."""
+    flags = data.get(F_DATA_FLAGS, {}) or {}
+    source_entries = flags.get(F_SOURCES, []) or []
+    notes = flags.get("notes", []) or []
+
+    estimated_sources = [e for e in source_entries if e.get("has_estimated_values")]
+
+    if not estimated_sources and not notes:
         return "No fields in this result were flagged as estimated."
-    bullets = "\n".join(f"- {f}" for f in estimated_fields)
-    return (
-        "The following fields in this result are estimated rather than measured, and "
-        f"should be treated as provisional:\n{bullets}"
-    )
+
+    lines = []
+    if estimated_sources:
+        bullets = []
+        for e in estimated_sources:
+            source_id = e.get("source_id", "unknown source")
+            provenance = e.get("provenance", {}) or {}
+            estimated_fields = [k for k, v in provenance.items() if v == "estimate"]
+            if estimated_fields:
+                bullets.append(f"- {source_id}: {', '.join(estimated_fields)}")
+            else:
+                bullets.append(f"- {source_id}")
+        lines.append(
+            "The following sources have one or more estimated fields, and should be "
+            "treated as provisional:\n" + "\n".join(bullets)
+        )
+
+    if notes:
+        note_bullets = "\n".join(f"- {n}" for n in notes)
+        lines.append(f"Additional notes on data provenance:\n{note_bullets}")
+
+    return "\n\n".join(lines)
 
 
 def build_summary(data: dict) -> str:
@@ -596,20 +617,23 @@ def build_summary(data: dict) -> str:
     sources = data.get(F_SOURCES, {}) or {}
     n_selected = len(sources.get(F_SELECTED, []) or [])
     n_unused = len(sources.get(F_UNUSED, []) or [])
-    after = data.get(F_WATER_QUALITY, {}).get(F_AFTER_TREATMENT, {}) or {}
+    by_plant = data.get(F_WATER_QUALITY, {}).get(F_BY_PLANT, {}) or {}
 
     overall_quality = "PASS"
-    for q in after.values():
-        margin = q.get("safety_margin_percent")
-        if q.get("status") == "FAIL" or (margin is not None and margin < 0):
-            overall_quality = "FAIL"
+    for plant_quality in by_plant.values():
+        for q in (plant_quality or {}).values():
+            margin = q.get("safety_margin_percent")
+            if q.get("status") == "FAIL" or (margin is not None and margin < 0):
+                overall_quality = "FAIL"
+                break
+        if overall_quality == "FAIL":
             break
 
     cost_clause = f"${total_cost:,.2f} {currency}".strip() if total_cost is not None else "not reported"
     return (
         f"This scenario is {status}. Total cost: {cost_clause}. "
         f"{n_selected} source(s) selected, {n_unused} unused. "
-        f"Water quality after treatment: {overall_quality}."
+        f"Plant-inflow blend quality: {overall_quality}."
     )
 
 

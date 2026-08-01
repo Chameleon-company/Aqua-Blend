@@ -50,18 +50,18 @@ REFERENCE_JSON = {
     "solved_at": "2026-07-17T10:32:00Z",
     "status": "OPTIMAL",
     "objective": {
-        "total_cost": 184250.00,
+        "total_cost": 184150.00,
         "currency": "AUD",
-        "unit": "total cost for demand period",
+        "unit": "cost for one representative day",
         "cost_breakdown": {
-            "source_draw_cost": 152250.00,
-            "chemical_addition_cost": 14000.00,
-            "energy_cost": 18000.00,
+            "source_activation_cost": 0.00,
+            "plant_activation_cost": 0.00,
+            "source_draw_cost": 152150.00,
+            "plant_treatment_cost": 32000.00,
         },
-        "energy_estimate_kWh": 6400,
     },
     "demand_zones": [
-        {"zone_id": "zone_1", "required_volume_ML": 500, "volume_supplied_ML": 500}
+        {"zone_id": "zone_1", "zone_name": "Zone 1", "demand_ml_per_day": 500, "volume_supplied_ml_per_day": 500}
     ],
     "sources": {
         "selected": [
@@ -69,19 +69,19 @@ REFERENCE_JSON = {
                 "source_id": "silvan_reservoir",
                 "source_name": "Silvan Reservoir",
                 "source_type": "reservoir",
-                "volume_drawn_ML": 210,
+                "volume_drawn_ml_per_day": 210,
                 "percent_of_blend": 42.0,
-                "cost_per_ML": 400,
-                "cost_contribution": 84000.00,
+                "cost_per_ml": 400,
+                "draw_cost": 84000.00,
             },
             {
                 "source_id": "yarra_kew",
                 "source_name": "Yarra River, Kew",
                 "source_type": "river",
-                "volume_drawn_ML": 290,
+                "volume_drawn_ml_per_day": 290,
                 "percent_of_blend": 58.0,
-                "cost_per_ML": 235,
-                "cost_contribution": 68250.00,
+                "cost_per_ml": 235,
+                "draw_cost": 68150.00,
             },
         ],
         "unused": [
@@ -96,100 +96,134 @@ REFERENCE_JSON = {
             }
         ],
     },
-    "transfer_paths": [
-        {"path_id": "silvan_to_facility1", "active": True},
-        {"path_id": "yarra_kew_to_facility1", "active": True},
-        {"path_id": "groundwater_1_to_facility1", "active": False},
-    ],
-    "treatment_facilities": {
+    "transfer_paths": {
+        "source_to_plant": [
+            {"path_id": "silvan_reservoir_to_facility_1", "source_id": "silvan_reservoir", "plant_id": "facility_1", "active": True, "flow_ml_per_day": 210},
+            {"path_id": "yarra_kew_to_facility_1", "source_id": "yarra_kew", "plant_id": "facility_1", "active": True, "flow_ml_per_day": 290},
+            {"path_id": "groundwater_bore_1_to_facility_1", "source_id": "groundwater_bore_1", "plant_id": "facility_1", "active": False, "flow_ml_per_day": 0},
+        ],
+        "plant_to_zone": [
+            {"path_id": "facility_1_to_zone_1", "plant_id": "facility_1", "zone_id": "zone_1", "active": True, "flow_ml_per_day": 500},
+        ],
+    },
+    "plants": {
         "active": [
             {
-                "facility_id": "facility_1",
-                "facility_name": "Treatment Facility 1",
-                "volume_processed_ML": 500,
-                "treatment_batches": 5,
-                "chemical_addition": [
-                    {"chemical": "chlorine", "quantity_kg": 120, "unit": "kg", "purpose": "disinfection"},
-                    {"chemical": "lime", "quantity_kg": 60, "unit": "kg", "purpose": "pH correction"},
-                ],
-                "treatment_removal": [
-                    {"parameter": "turbidity", "quantity_removed_NTU_equivalent": 3.2}
-                ],
+                "plant_id": "facility_1",
+                "plant_name": "Treatment Facility 1",
+                "volume_processed_ml_per_day": 500,
+                "treatment_cost_per_ml": 64,
+                "treatment_cost": 32000.00,
             }
         ],
         "inactive": [],
     },
     "water_quality": {
-        "after_blending": {
-            "pH": {"value": 7.1, "unit": "pH"},
-            "alkalinity": {"value": 38.0, "unit": "mg/L CaCO3"},
-            "turbidity": {"value": 5.3, "unit": "NTU"},
-        },
-        "after_treatment": {
-            "pH": {"value": 7.4, "unit": "pH", "constraint_min": 6.5, "constraint_max": 8.5,
-                   "status": "PASS", "safety_margin_percent": 21.4},
-            "alkalinity": {"value": 52.3, "unit": "mg/L CaCO3", "constraint_min": 20, "constraint_max": 100,
-                           "status": "PASS", "safety_margin_percent": 47.7},
-            "turbidity": {"value": 2.1, "unit": "NTU", "constraint_min": 0, "constraint_max": 5.0,
-                          "status": "PASS", "safety_margin_percent": 58.0},
+        "applies_to": "blend_at_plant_inflow",
+        "by_plant": {
+            "facility_1": {
+                "pH": {"value": 7.11, "unit": "pH", "constraint_min": 6.5, "constraint_max": 8.5,
+                       "status": "PASS", "safety_margin_percent": 30.5},
+                "alkalinity": {"value": 38.04, "unit": "mg/L CaCO3", "constraint_min": 20, "constraint_max": 100,
+                               "status": "PASS", "safety_margin_percent": 22.6},
+                "turbidity": {"value": 5.28, "unit": "NTU", "constraint_min": 0, "constraint_max": 8.0,
+                              "status": "PASS", "safety_margin_percent": 34.0},
+            }
         },
     },
     "constraints": [
-        {"name": "demand_satisfaction_zone_1", "status": "PASS", "slack": 0.0, "binding": True},
-        {"name": "silvan_reservoir_capacity", "status": "PASS", "slack": 40371.0, "binding": False},
-        {"name": "yarra_kew_capacity", "status": "PASS", "slack": 0.0, "binding": True},
-        {"name": "groundwater_bore_1_activation", "status": "INACTIVE", "slack": None, "binding": False},
-        {"name": "pH_range", "status": "PASS", "slack": 1.1, "binding": False},
-        {"name": "alkalinity_range", "status": "PASS", "slack": 32.3, "binding": False},
-        {"name": "turbidity_range", "status": "PASS", "slack": 2.9, "binding": False},
-        {"name": "facility_1_batch_capacity", "status": "PASS", "slack": 0.5, "binding": False},
+        {"name": "demand_satisfaction_zone_1", "type": "inequality", "status": "PASS", "slack": 0.0, "binding": True},
+        {"name": "source_capacity_silvan_reservoir", "type": "inequality", "status": "PASS", "slack": 40371.0, "binding": False},
+        {"name": "source_capacity_yarra_kew", "type": "inequality", "status": "PASS", "slack": 0.0, "binding": True},
+        {"name": "source_capacity_groundwater_bore_1", "type": "inequality", "status": "INACTIVE", "slack": 0.0, "binding": False},
+        {"name": "plant_capacity_facility_1", "type": "inequality", "status": "PASS", "slack": 100.0, "binding": False},
+        {"name": "quality_range_pH_facility_1", "type": "ranged", "status": "PASS", "slack": 0.61, "binding": False},
+        {"name": "quality_range_alkalinity_facility_1", "type": "ranged", "status": "PASS", "slack": 18.04, "binding": False},
+        {"name": "quality_range_turbidity_facility_1", "type": "ranged", "status": "PASS", "slack": 2.72, "binding": False},
     ],
-    "binding_constraints_summary": ["demand_satisfaction_zone_1", "yarra_kew_capacity"],
+    "binding_constraints_summary": ["demand_satisfaction_zone_1", "source_capacity_yarra_kew"],
     "alternative_feasible_solutions": [
         {
             "description": "Reduce Yarra Kew share to 45 percent and introduce Groundwater Bore 1 at 13 percent",
             "total_cost": 189400.00,
-            "cost_difference_from_optimal": 5150.00,
+            "cost_difference_from_optimal": 5250.00,
             "notes": "Slightly higher cost, but reduces dependence on a single river source and adds redundancy if Yarra Kew availability drops",
         }
     ],
     "sensitivity_to_key_assumptions": [
         {
-            "assumption": "cost_per_ML for groundwater_bore_1 (estimated)",
+            "assumption": "cost_per_ml for groundwater_bore_1 (flagged estimated in the source view)",
             "impact": "If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused",
         },
         {
-            "assumption": "yarra_kew daily capacity (estimated pending real withdrawal-rate data)",
-            "impact": "This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level",
+            "assumption": "max_available_ml_per_day for yarra_kew (flagged estimated in the source view)",
+            "impact": "This constraint is currently binding; if real availability is lower than assumed, the model may become infeasible at this demand level",
         },
     ],
     "explanation": (
         "Silvan Reservoir is selected at 42 percent because it has low draw cost and ample "
-        "remaining capacity. Yarra Kew is blended at 58 percent, the maximum its estimated "
-        "daily capacity allows, because it is the cheapest available source for this scenario; "
+        "remaining availability. Yarra Kew is blended at 58 percent, the maximum its estimated "
+        "daily availability allows, because it is the cheapest available source for this scenario; "
         "this makes its capacity constraint binding. Groundwater Bore 1 is not used because its "
         "estimated cost is higher than both selected sources, and blending it in would raise "
-        "total cost without a quality benefit large enough to justify inclusion. After treatment "
-        "at Facility 1, all three quality parameters sit comfortably within their limits, with "
-        "the widest safety margin on turbidity."
+        "total cost without a quality benefit large enough to justify inclusion. The blend "
+        "arriving at Facility 1 sits within all three quality limits, with the widest margin on "
+        "turbidity."
     ),
     "diagnostics": {
         "solver": "HiGHS",
         "solve_time_seconds": 0.084,
         "optimality_gap": 0.0,
-        "num_continuous_variables": 4,
-        "num_binary_variables": 4,
-        "num_integer_variables": 1,
-        "num_constraints": 8,
+        "num_continuous_variables": 7,
+        "num_binary_variables": 8,
+        "num_integer_variables": 0,
+        "num_constraints": 20,
     },
     "data_flags": {
-        "estimated_fields": [
-            "cost_per_ML (all sources)",
-            "quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)",
-            "treatment facility capacity and dosing rates (placeholder pending real data)",
-            "reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data",
-            "energy estimate (placeholder formula pending real pumping and treatment energy data)",
-        ]
+        "sources": [
+            {
+                "source_id": "silvan_reservoir",
+                "has_estimated_values": True,
+                "availability_origin": "database",
+                "provenance": {
+                    "storage_capacity": "estimate",
+                    "reference_flow": "estimate",
+                    "max_available": "estimate",
+                    "cost": "estimate",
+                    "alkalinity": "estimate",
+                },
+            },
+            {
+                "source_id": "yarra_kew",
+                "has_estimated_values": True,
+                "availability_origin": "database",
+                "provenance": {
+                    "storage_capacity": "estimate",
+                    "reference_flow": "estimate",
+                    "max_available": "estimate",
+                    "cost": "estimate",
+                    "alkalinity": "estimate",
+                },
+            },
+            {
+                "source_id": "groundwater_bore_1",
+                "has_estimated_values": True,
+                "availability_origin": "database",
+                "provenance": {
+                    "storage_capacity": "estimate",
+                    "reference_flow": "estimate",
+                    "max_available": "estimate",
+                    "cost": "estimate",
+                    "alkalinity": "estimate",
+                },
+            },
+        ],
+        "notes": [
+            "source_activation_cost is structurally 0.00: the formulation charges F_s per activated source, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.",
+            "plant_activation_cost is 0.00 because the toy case holds the single plant active and its fixed cost is set to 0 in the input contract.",
+            "Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.",
+            "Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits.",
+        ],
     },
 }
 
@@ -197,7 +231,6 @@ REFERENCE_JSON = {
 def ref():
     """Fresh deep copy so tests can mutate without affecting each other."""
     return copy.deepcopy(REFERENCE_JSON)
-
 
 # ---------------------------------------------------------------------------
 # 1. Reference JSON tests
@@ -217,7 +250,7 @@ class TestReferenceJSON:
         assert "cheapest available source and was used at its full available capacity" in text
         assert "58.0% of the blend (290 ML)" in text
         assert "$235.00 AUD/ML" in text
-        assert "(estimated)" in text  # cost_per_ML (all sources) is flagged estimated
+        assert "(estimated)" in text  # yarra_kew has_estimated_values is True
 
     def test_sources_silvan_second_cheapest_not_binding(self):
         text = explain_sources(ref())
@@ -242,24 +275,31 @@ class TestReferenceJSON:
         assert "available capacity of Yarra River, Kew" in text
         assert "290 ML" in text
 
-    def test_quality_all_pass_headline_is_pH(self):
+    def test_quality_all_pass_headline_is_alkalinity(self):
+        """Per the confirmed reference output, alkalinity has the tightest
+        margin (22.6%), not pH - the toy model's real numbers differ from
+        the earlier draft example this file was first built against."""
         text = explain_quality_and_margins(ref())
-        assert "All tested quality parameters passed" in text
-        assert "pH was closest to its limit" in text
-        assert "21.4%" in text
-        assert "widest margin was on turbidity at 58.0%" in text
+        assert "All tested plant-inflow blend quality parameters passed at facility_1" in text
+        assert "alkalinity was closest to its limit" in text
+        assert "22.6%" in text
+        assert "widest margin at facility_1 was on turbidity at 34.0%" in text
 
-    def test_estimated_fields_lists_all_five(self):
+    def test_estimated_fields_lists_all_three_sources(self):
         text = explain_estimated_fields(ref())
-        for fragment in ["cost_per_ML (all sources)", "groundwater_bore_1", "energy estimate"]:
+        for fragment in ["silvan_reservoir", "yarra_kew", "groundwater_bore_1", "storage_capacity"]:
             assert fragment in text
+
+    def test_estimated_fields_includes_notes(self):
+        text = explain_estimated_fields(ref())
+        assert "source_activation_cost is structurally 0.00" in text
 
     def test_summary_reports_cost_and_pass(self):
         text = build_summary(ref())
         assert "OPTIMAL" in text
-        assert "184,250.00 AUD" in text
+        assert "184,150.00 AUD" in text
         assert "2 source(s) selected, 1 unused" in text
-        assert "Water quality after treatment: PASS" in text
+        assert "Plant-inflow blend quality: PASS" in text
 
     def test_generate_explanation_has_all_sections(self):
         text = generate_explanation(ref())
@@ -275,9 +315,9 @@ class TestReferenceJSON:
 
     def test_sensitivity_reports_both_reference_assumptions(self):
         text = explain_sensitivity(ref())
-        assert "cost_per_ML for groundwater_bore_1 (estimated)" in text
+        assert "cost_per_ml for groundwater_bore_1 (flagged estimated in the source view)" in text
         assert "groundwater_bore_1 would likely enter the optimal blend" in text
-        assert "yarra_kew daily capacity" in text
+        assert "max_available_ml_per_day for yarra_kew" in text
         assert "model may become infeasible" in text
 
     def test_matches_reference_explanation_in_substance(self):
@@ -304,9 +344,9 @@ class TestValidation:
         with pytest.raises(ExplainerInputError):
             validate_input(data)
 
-    def test_missing_after_treatment_raises(self):
+    def test_missing_by_plant_raises(self):
         data = ref()
-        del data["water_quality"]["after_treatment"]
+        del data["water_quality"]["by_plant"]
         with pytest.raises(ExplainerInputError):
             validate_input(data)
 
@@ -319,7 +359,7 @@ class TestValidation:
         del data["objective"]
         del data["data_flags"]
         del data["demand_zones"]
-        del data["treatment_facilities"]
+        del data["plants"]
         # should not raise
         text = generate_explanation(data)
         assert "not reported" in text  # cost clause falls back gracefully
@@ -351,9 +391,9 @@ class TestSourcesEdgeCases:
         text = explain_sources(data)
         assert text == "No sources were required for this scenario."
 
-    def test_missing_cost_per_ML_on_selected_uses_generic_fallback(self):
+    def test_missing_cost_per_ml_on_selected_uses_generic_fallback(self):
         data = ref()
-        del data["sources"]["selected"][0]["cost_per_ML"]
+        del data["sources"]["selected"][0]["cost_per_ml"]  # silvan_reservoir
         text = explain_sources(data)
         assert "included in the optimal blend to help meet demand at minimum total cost" in text
 
@@ -394,7 +434,21 @@ class TestSourcesEdgeCases:
         currency within the same explanation."""
         text = generate_explanation(ref())
         assert "$235.00 AUD/ML" in text
-        assert "$184,250.00 AUD" in text
+        assert "$184,150.00 AUD" in text
+
+    def test_estimated_tag_uses_clean_per_source_flag(self):
+        """Per the confirmed output contract, estimated-value disclosure is
+        a direct data_flags.sources[].has_estimated_values boolean, not the
+        old free-text substring matching against a flat estimated_fields[]
+        list. A source with has_estimated_values explicitly False should
+        never show '(estimated)'."""
+        data = ref()
+        for entry in data["data_flags"]["sources"]:
+            if entry["source_id"] == "silvan_reservoir":
+                entry["has_estimated_values"] = False
+        text = explain_sources(data)
+        silvan_line = [l for l in text.split("\n\n") if "Silvan Reservoir" in l][0]
+        assert "(estimated)" not in silvan_line
 
 
 # ---------------------------------------------------------------------------
@@ -415,90 +469,104 @@ class TestBindingConstraintsEdgeCases:
         text = explain_binding_constraints(data)
         assert "no plain-language mapping available" in text
 
-    def test_source_activation_selected(self):
+    def test_plant_capacity_binding(self):
         data = ref()
-        data["binding_constraints_summary"] = ["silvan_reservoir_activation"]
-        text = explain_binding_constraints(data)
-        assert "had to be switched fully on rather than partly used" in text
-
-    def test_source_activation_unused(self):
-        data = ref()
-        data["binding_constraints_summary"] = ["groundwater_bore_1_activation"]
-        text = explain_binding_constraints(data)
-        assert "was left switched off entirely" in text
-
-    def test_treatment_capacity_binding(self):
-        data = ref()
-        data["binding_constraints_summary"] = ["facility_1_batch_capacity"]
+        data["binding_constraints_summary"] = ["plant_capacity_facility_1"]
         text = explain_binding_constraints(data)
         assert "Treatment Facility 1" in text
-        assert "500 ML across 5 batches" in text
+        assert "500 ML" in text
+        # No batch counting: the confirmed formulation has zero integer
+        # variables (diagnostics.num_integer_variables == 0), so there is
+        # nothing to count in batches anymore.
+        assert "batch" not in text.lower()
 
     def test_water_quality_range_binding(self):
         data = ref()
-        data["binding_constraints_summary"] = ["turbidity_range"]
+        data["binding_constraints_summary"] = ["quality_range_turbidity_facility_1"]
         text = explain_binding_constraints(data)
         assert "turbidity limit" in text
-        assert "0" in text and "5.0" in text
+        assert "facility_1" in text
+        assert "0" in text and "8.0" in text
+
+    def test_link_capacity_source_to_plant_binding(self):
+        """link_capacity_<from>_to_<to> is a real inequality constraint per
+        the confirmed output contract (Section 3.8) and can legitimately
+        appear in binding_constraints_summary - this was missing entirely
+        before this fix and would have fallen into the generic unknown
+        wording."""
+        data = ref()
+        data["binding_constraints_summary"] = ["link_capacity_silvan_reservoir_to_facility_1"]
+        text = explain_binding_constraints(data)
+        assert "Silvan Reservoir" in text
+        assert "Treatment Facility 1" in text
+        assert "210 ML" in text
+        assert "no plain-language mapping available" not in text
+
+    def test_link_capacity_plant_to_zone_binding(self):
+        data = ref()
+        data["binding_constraints_summary"] = ["link_capacity_facility_1_to_zone_1"]
+        text = explain_binding_constraints(data)
+        assert "Treatment Facility 1" in text
+        assert "Zone 1" in text
+        assert "500 ML" in text
+
+    def test_link_capacity_unknown_path_id_falls_back(self):
+        data = ref()
+        data["binding_constraints_summary"] = ["link_capacity_nonexistent_to_nowhere"]
+        text = explain_binding_constraints(data)
+        assert "no plain-language mapping available" in text
 
 
 # ---------------------------------------------------------------------------
-# 6. Water-quality edge cases (Task 8)
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# 5b. Binding-constraints: updated template requirements (category ordering,
-#     estimated disclosure, missing-field handling, singular batch)
+# 5b. Binding-constraints: confirmed-contract naming, ordering, missing data
 # ---------------------------------------------------------------------------
 
 class TestBindingConstraintsUpdatedTemplate:
 
     def test_category_ordering_ignores_json_order(self):
         """Water-quality listed FIRST in binding_constraints_summary must
-        still render AFTER demand and source-capacity, per the template's
-        fixed category order."""
+        still render AFTER demand and source-capacity, per the fixed
+        category order: demand, source_capacity, plant_capacity, water_quality."""
         data = ref()
         data["binding_constraints_summary"] = [
-            "turbidity_range", "demand_satisfaction_zone_1", "yarra_kew_capacity"
+            "quality_range_turbidity_facility_1", "demand_satisfaction_zone_1", "source_capacity_yarra_kew"
         ]
         text = explain_binding_constraints(data)
         assert text.index("water demand for zone_1") < text.index("available capacity of Yarra River, Kew")
         assert text.index("available capacity of Yarra River, Kew") < text.index("turbidity limit")
 
-    def test_estimated_disclosure_capacity_all_sources(self):
-        """'cost_per_ML (all sources)' in the reference JSON's estimated
-        fields triggers disclosure on source-capacity per the template's
-        literal 'or all sources' rule, even though that entry is about cost,
-        not capacity - this is a known, flagged ambiguity, not a bug."""
+    def test_estimated_disclosure_reads_per_source_flag(self):
+        """(290 ML, estimated) - yarra_kew's data_flags.sources[] entry has
+        has_estimated_values: True, per the confirmed output contract."""
         text = explain_binding_constraints(ref())
         assert "(290 ML, estimated)" in text
 
-    def test_missing_required_volume_ml_drops_clause_not_whole_sentence(self):
+    def test_missing_demand_ml_per_day_drops_clause_not_whole_sentence(self):
         data = ref()
-        del data["demand_zones"][0]["required_volume_ML"]
+        del data["demand_zones"][0]["demand_ml_per_day"]
         text = explain_binding_constraints(data)
         assert "the full volume needed by zone_1 had to be delivered" in text
         assert "None" not in text
 
-    def test_missing_volume_drawn_ml_drops_clause(self):
+    def test_missing_volume_drawn_ml_per_day_drops_clause(self):
         data = ref()
-        del data["sources"]["selected"][1]["volume_drawn_ML"]  # yarra_kew
+        del data["sources"]["selected"][1]["volume_drawn_ml_per_day"]  # yarra_kew
         text = explain_binding_constraints(data)
         assert "was drawn up to the most its capacity allows, so" in text
         assert "None" not in text
 
-    def test_missing_facility_fields_drops_clause(self):
+    def test_missing_plant_fields_drops_clause(self):
         data = ref()
-        del data["treatment_facilities"]["active"][0]["volume_processed_ML"]
-        data["binding_constraints_summary"] = ["facility_1_batch_capacity"]
+        del data["plants"]["active"][0]["volume_processed_ml_per_day"]
+        data["binding_constraints_summary"] = ["plant_capacity_facility_1"]
         text = explain_binding_constraints(data)
         assert "was already treating as much as it can handle, leaving no spare capacity" in text
         assert "None" not in text
 
     def test_missing_quality_range_fields_drops_clause(self):
         data = ref()
-        del data["water_quality"]["after_treatment"]["turbidity"]["constraint_min"]
-        data["binding_constraints_summary"] = ["turbidity_range"]
+        del data["water_quality"]["by_plant"]["facility_1"]["turbidity"]["constraint_min"]
+        data["binding_constraints_summary"] = ["quality_range_turbidity_facility_1"]
         text = explain_binding_constraints(data)
         assert "sat right at the edge of its safe range, so the blend" in text
         assert "None" not in text
@@ -509,33 +577,30 @@ class TestBindingConstraintsUpdatedTemplate:
         text = explain_binding_constraints(data)
         assert "yarra_kew" in text  # falls back to the id, not "None"
 
-    def test_singular_batch_noun(self):
+    def test_missing_plant_name_falls_back_to_plant_id(self):
         data = ref()
-        data["treatment_facilities"]["active"][0]["treatment_batches"] = 1
-        data["binding_constraints_summary"] = ["facility_1_batch_capacity"]
+        del data["plants"]["active"][0]["plant_name"]
+        data["binding_constraints_summary"] = ["plant_capacity_facility_1"]
         text = explain_binding_constraints(data)
-        assert "1 batch," in text or "1 batch)" in text or "1 batch " in text
-        assert "1 batches" not in text
-
-    def test_plural_batch_noun_unchanged(self):
-        data = ref()
-        data["binding_constraints_summary"] = ["facility_1_batch_capacity"]
-        text = explain_binding_constraints(data)
-        assert "5 batches" in text
+        assert "facility_1" in text
 
     def test_no_estimated_tag_when_figure_dropped(self):
         """If the clause carrying the figure is dropped under Missing-field,
         no estimated tag should appear either - there's no figure left to
-        qualify."""
+        qualify. Demand itself never discloses estimated at all now, since
+        the confirmed contract has no provenance mechanism for demand."""
         data = ref()
-        del data["demand_zones"][0]["required_volume_ML"]
+        del data["demand_zones"][0]["demand_ml_per_day"]
         data["binding_constraints_summary"] = ["demand_satisfaction_zone_1"]  # isolate
         text = explain_binding_constraints(data)
         assert "estimated" not in text.lower()
 
-    def test_source_activation_never_discloses_estimated(self):
+    def test_quality_never_discloses_estimated(self):
+        """Per the confirmed output contract's own 'known gaps' (Section 6),
+        quality limits carry no provenance mechanism at all, so this
+        category should never show '(estimated)', unlike source_capacity."""
         data = ref()
-        data["binding_constraints_summary"] = ["silvan_reservoir_activation"]
+        data["binding_constraints_summary"] = ["quality_range_turbidity_facility_1"]
         text = explain_binding_constraints(data)
         assert "estimated" not in text.lower()
 
@@ -544,25 +609,42 @@ class TestQualityEdgeCases:
 
     def test_violation_reported(self):
         data = ref()
-        data["water_quality"]["after_treatment"]["turbidity"]["status"] = "FAIL"
-        data["water_quality"]["after_treatment"]["turbidity"]["safety_margin_percent"] = -4.5
-        data["water_quality"]["after_treatment"]["turbidity"]["value"] = 5.4
+        data["water_quality"]["by_plant"]["facility_1"]["turbidity"]["status"] = "FAIL"
+        data["water_quality"]["by_plant"]["facility_1"]["turbidity"]["safety_margin_percent"] = -4.5
+        data["water_quality"]["by_plant"]["facility_1"]["turbidity"]["value"] = 8.4
         text = explain_quality_and_margins(data)
-        assert "Not all quality parameters passed" in text
+        assert "Not all plant-inflow blend quality parameters passed at facility_1" in text
         assert "turbidity breached its allowed range" in text
         assert "-4.5%" in text
 
     def test_missing_parameter_flagged_not_assumed_pass(self):
         data = ref()
-        del data["water_quality"]["after_treatment"]["alkalinity"]
+        del data["water_quality"]["by_plant"]["facility_1"]["alkalinity"]
         text = explain_quality_and_margins(data)
-        assert "alkalinity was not reported in the results and could not be assessed" in text
+        assert "alkalinity at facility_1 was not reported in the results and could not be assessed" in text
 
-    def test_estimated_note_appended_when_flagged(self):
+    def test_multiple_plants_each_reported_separately(self):
+        """The confirmed contract reports quality per plant
+        (water_quality.by_plant), so a scenario with more than one active
+        plant must report each plant's blend on its own, not merge them."""
         data = ref()
-        data["data_flags"]["estimated_fields"].append("pH sensor calibration (estimated)")
+        data["water_quality"]["by_plant"]["facility_2"] = {
+            "pH": {"value": 7.0, "unit": "pH", "constraint_min": 6.5, "constraint_max": 8.5,
+                   "status": "PASS", "safety_margin_percent": 33.3},
+            "alkalinity": {"value": 40.0, "unit": "mg/L CaCO3", "constraint_min": 20, "constraint_max": 100,
+                           "status": "PASS", "safety_margin_percent": 25.0},
+            "turbidity": {"value": 3.0, "unit": "NTU", "constraint_min": 0, "constraint_max": 8.0,
+                          "status": "PASS", "safety_margin_percent": 62.5},
+        }
         text = explain_quality_and_margins(data)
-        assert "relies on estimated data for pH sensor calibration" in text
+        assert "facility_1" in text
+        assert "facility_2" in text
+
+    def test_no_plants_reported_returns_explicit_message(self):
+        data = ref()
+        data["water_quality"]["by_plant"] = {}
+        text = explain_quality_and_margins(data)
+        assert text == "No plant-inflow blend quality was reported for this scenario."
 
 
 # ---------------------------------------------------------------------------
@@ -612,14 +694,16 @@ class TestSensitivitySection:
 
 
 # ---------------------------------------------------------------------------
-# 8. Estimated-fields section (Task 9, new)
+# 8. Estimated-fields section (Task 9, rebuilt against data_flags.sources[]
+#    + data_flags.notes[] per the confirmed output contract, Section 3.11)
 # ---------------------------------------------------------------------------
 
 class TestEstimatedFieldsSection:
 
-    def test_no_estimated_fields(self):
+    def test_no_estimated_sources_and_no_notes(self):
         data = ref()
-        data["data_flags"]["estimated_fields"] = []
+        data["data_flags"]["sources"] = []
+        data["data_flags"]["notes"] = []
         text = explain_estimated_fields(data)
         assert text == "No fields in this result were flagged as estimated."
 
@@ -628,6 +712,23 @@ class TestEstimatedFieldsSection:
         del data["data_flags"]
         text = explain_estimated_fields(data)
         assert text == "No fields in this result were flagged as estimated."
+
+    def test_source_with_has_estimated_values_false_is_excluded(self):
+        data = ref()
+        data["data_flags"]["sources"] = [
+            {"source_id": "silvan_reservoir", "has_estimated_values": False,
+             "availability_origin": "database", "provenance": {}}
+        ]
+        data["data_flags"]["notes"] = []
+        text = explain_estimated_fields(data)
+        assert "silvan_reservoir" not in text
+        assert text == "No fields in this result were flagged as estimated."
+
+    def test_notes_shown_even_with_no_estimated_sources(self):
+        data = ref()
+        data["data_flags"]["sources"] = []
+        text = explain_estimated_fields(data)
+        assert "source_activation_cost is structurally 0.00" in text
 
 
 if __name__ == "__main__":

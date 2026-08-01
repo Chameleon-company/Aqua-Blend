@@ -31,30 +31,32 @@ The solution was limited by the available capacity of Yarra River, Kew: Yarra Ri
 
 ## Water Quality & Safety Margins
 
-All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+All tested plant-inflow blend quality parameters passed at facility_1. alkalinity was closest to its limit, with a safety margin of 22.6%.
 
-The widest margin was on turbidity at 58.0%.
-
-Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+The widest margin at facility_1 was on turbidity at 34.0%.
 
 ## Sensitivity to Key Assumptions
 
-This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+This result is sensitive to cost_per_ml for groundwater_bore_1 (flagged estimated in the source view): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
 
-This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+This result is sensitive to max_available_ml_per_day for yarra_kew (flagged estimated in the source view): This constraint is currently binding; if real availability is lower than assumed, the model may become infeasible at this demand level.
 
 ## Estimated Fields / Data Limitations
 
-The following fields in this result are estimated rather than measured, and should be treated as provisional:
-- cost_per_ML (all sources)
-- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
-- treatment facility capacity and dosing rates (placeholder pending real data)
-- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
-- energy estimate (placeholder formula pending real pumping and treatment energy data)
+The following sources have one or more estimated fields, and should be treated as provisional:
+- silvan_reservoir: storage_capacity, reference_flow, max_available, cost, alkalinity
+- yarra_kew: storage_capacity, reference_flow, max_available, cost, alkalinity
+- groundwater_bore_1: storage_capacity, reference_flow, max_available, cost, alkalinity
+
+Additional notes on data provenance:
+- source_activation_cost is structurally 0.00: the formulation charges F_s per activated source, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.
+- plant_activation_cost is 0.00 because the toy case holds the single plant active and its fixed cost is set to 0 in the input contract.
+- Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.
+- Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits.
 
 ## Summary
 
-This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
+This scenario is OPTIMAL. Total cost: $184,150.00 AUD. 2 source(s) selected, 1 unused. Plant-inflow blend quality: PASS.
 
 
 ==============================================================================
@@ -91,7 +93,7 @@ from test_json_explainer import REFERENCE_JSON
 data = REFERENCE_JSON.copy()
 data['sources'] = {'selected': [], 'unused': []}
 data['binding_constraints_summary'] = []
-data['demand_zones'] = [{'zone_id': 'zone_1', 'required_volume_ML': 0, 'volume_supplied_ML': 0}]
+data['demand_zones'] = [{'zone_id': 'zone_1', 'zone_name': 'Zone 1', 'demand_ml_per_day': 0, 'volume_supplied_ml_per_day': 0}]
 with open('try_it.json', 'w') as f:
     json.dump(data, f, indent=2)
 "
@@ -109,30 +111,32 @@ No constraint was binding; the solution stayed within every limit.
 
 ## Water Quality & Safety Margins
 
-All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+All tested plant-inflow blend quality parameters passed at facility_1. alkalinity was closest to its limit, with a safety margin of 22.6%.
 
-The widest margin was on turbidity at 58.0%.
-
-Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+The widest margin at facility_1 was on turbidity at 34.0%.
 
 ## Sensitivity to Key Assumptions
 
-This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+This result is sensitive to cost_per_ml for groundwater_bore_1 (flagged estimated in the source view): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
 
-This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+This result is sensitive to max_available_ml_per_day for yarra_kew (flagged estimated in the source view): This constraint is currently binding; if real availability is lower than assumed, the model may become infeasible at this demand level.
 
 ## Estimated Fields / Data Limitations
 
-The following fields in this result are estimated rather than measured, and should be treated as provisional:
-- cost_per_ML (all sources)
-- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
-- treatment facility capacity and dosing rates (placeholder pending real data)
-- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
-- energy estimate (placeholder formula pending real pumping and treatment energy data)
+The following sources have one or more estimated fields, and should be treated as provisional:
+- silvan_reservoir: storage_capacity, reference_flow, max_available, cost, alkalinity
+- yarra_kew: storage_capacity, reference_flow, max_available, cost, alkalinity
+- groundwater_bore_1: storage_capacity, reference_flow, max_available, cost, alkalinity
+
+Additional notes on data provenance:
+- source_activation_cost is structurally 0.00: the formulation charges F_s per activated source, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.
+- plant_activation_cost is 0.00 because the toy case holds the single plant active and its fixed cost is set to 0 in the input contract.
+- Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.
+- Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits.
 
 ## Summary
 
-This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 0 source(s) selected, 0 unused. Water quality after treatment: PASS.
+This scenario is OPTIMAL. Total cost: $184,150.00 AUD. 0 source(s) selected, 0 unused. Plant-inflow blend quality: PASS.
 
 
 ==============================================================================
@@ -146,9 +150,9 @@ python3 -c "
 import json
 from test_json_explainer import REFERENCE_JSON
 data = REFERENCE_JSON.copy()
-data['water_quality']['after_treatment']['turbidity']['status'] = 'FAIL'
-data['water_quality']['after_treatment']['turbidity']['safety_margin_percent'] = -4.5
-data['water_quality']['after_treatment']['turbidity']['value'] = 5.4
+data['water_quality']['by_plant']['facility_1']['turbidity']['status'] = 'FAIL'
+data['water_quality']['by_plant']['facility_1']['turbidity']['safety_margin_percent'] = -4.5
+data['water_quality']['by_plant']['facility_1']['turbidity']['value'] = 8.4
 with open('try_it.json', 'w') as f:
     json.dump(data, f, indent=2)
 "
@@ -172,34 +176,36 @@ The solution was limited by the available capacity of Yarra River, Kew: Yarra Ri
 
 ## Water Quality & Safety Margins
 
-Not all quality parameters passed. turbidity breached its allowed range: 5.4 NTU against a permitted 0-5.0 NTU (safety margin -4.5%). This is treated as a violation and must be resolved before the blend is acceptable.
-
-Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+Not all plant-inflow blend quality parameters passed at facility_1. turbidity breached its allowed range: 8.4 NTU against a permitted 0-8.0 NTU (safety margin -4.5%). This is treated as a violation and must be resolved before the blend is acceptable.
 
 ## Sensitivity to Key Assumptions
 
-This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+This result is sensitive to cost_per_ml for groundwater_bore_1 (flagged estimated in the source view): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
 
-This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+This result is sensitive to max_available_ml_per_day for yarra_kew (flagged estimated in the source view): This constraint is currently binding; if real availability is lower than assumed, the model may become infeasible at this demand level.
 
 ## Estimated Fields / Data Limitations
 
-The following fields in this result are estimated rather than measured, and should be treated as provisional:
-- cost_per_ML (all sources)
-- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
-- treatment facility capacity and dosing rates (placeholder pending real data)
-- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
-- energy estimate (placeholder formula pending real pumping and treatment energy data)
+The following sources have one or more estimated fields, and should be treated as provisional:
+- silvan_reservoir: storage_capacity, reference_flow, max_available, cost, alkalinity
+- yarra_kew: storage_capacity, reference_flow, max_available, cost, alkalinity
+- groundwater_bore_1: storage_capacity, reference_flow, max_available, cost, alkalinity
+
+Additional notes on data provenance:
+- source_activation_cost is structurally 0.00: the formulation charges F_s per activated source, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.
+- plant_activation_cost is 0.00 because the toy case holds the single plant active and its fixed cost is set to 0 in the input contract.
+- Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.
+- Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits.
 
 ## Summary
 
-This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: FAIL.
+This scenario is OPTIMAL. Total cost: $184,150.00 AUD. 2 source(s) selected, 1 unused. Plant-inflow blend quality: FAIL.
 
 
 ==============================================================================
 
-SAMPLE 5: Missing cost_per_ML on a selected source, plus a source-
-activation and treatment-capacity binding constraint
+SAMPLE 5: Missing cost_per_ml on a selected source, plus a plant-
+capacity binding constraint
 
 To reproduce this exact sample yourself, run:
 
@@ -207,8 +213,8 @@ python3 -c "
 import json
 from test_json_explainer import REFERENCE_JSON
 data = REFERENCE_JSON.copy()
-del data['sources']['selected'][0]['cost_per_ML']
-data['binding_constraints_summary'] = ['yarra_kew_activation', 'facility_1_batch_capacity']
+del data['sources']['selected'][1]['cost_per_ml']
+data['binding_constraints_summary'] = ['plant_capacity_facility_1']
 with open('try_it.json', 'w') as f:
     json.dump(data, f, indent=2)
 "
@@ -218,44 +224,44 @@ python3 json_explainer.py try_it.json
 
 ## Selected & Unused Sources
 
-Yarra River, Kew supplied 58.0% of the blend (290 ML) at $235.00 AUD/ML (estimated), because it is the cheapest available source for this scenario, with capacity remaining.
+Yarra River, Kew supplied 58.0% of the blend (290 ML), because it was included in the optimal blend to help meet demand at minimum total cost.
 
-Silvan Reservoir supplied 42.0% of the blend (210 ML), because it was included in the optimal blend to help meet demand at minimum total cost.
+Silvan Reservoir supplied 42.0% of the blend (210 ML) at $400.00 AUD/ML (estimated), because it is the cheapest available source for this scenario, with capacity remaining.
 
 Groundwater Bore 1 was not selected because Higher cost per ML than the selected sources with no quality benefit large enough to justify inclusion for this demand level.
 
 ## Binding Constraints
 
-The solution was limited by whether Yarra River, Kew is switched on: Yarra River, Kew had to be switched fully on rather than partly used, and that is what allowed it into the blend.
-
-The solution was limited by the processing capacity of Treatment Facility 1: Treatment Facility 1 was already treating as much as it can handle (500 ML across 5 batches, estimated), leaving no spare capacity.
+The solution was limited by the processing capacity of Treatment Facility 1: Treatment Facility 1 was already treating as much as it can handle (500 ML), leaving no spare capacity.
 
 ## Water Quality & Safety Margins
 
-All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+All tested plant-inflow blend quality parameters passed at facility_1. alkalinity was closest to its limit, with a safety margin of 22.6%.
 
-The widest margin was on turbidity at 58.0%.
-
-Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+The widest margin at facility_1 was on turbidity at 34.0%.
 
 ## Sensitivity to Key Assumptions
 
-This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+This result is sensitive to cost_per_ml for groundwater_bore_1 (flagged estimated in the source view): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
 
-This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+This result is sensitive to max_available_ml_per_day for yarra_kew (flagged estimated in the source view): This constraint is currently binding; if real availability is lower than assumed, the model may become infeasible at this demand level.
 
 ## Estimated Fields / Data Limitations
 
-The following fields in this result are estimated rather than measured, and should be treated as provisional:
-- cost_per_ML (all sources)
-- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
-- treatment facility capacity and dosing rates (placeholder pending real data)
-- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
-- energy estimate (placeholder formula pending real pumping and treatment energy data)
+The following sources have one or more estimated fields, and should be treated as provisional:
+- silvan_reservoir: storage_capacity, reference_flow, max_available, cost, alkalinity
+- yarra_kew: storage_capacity, reference_flow, max_available, cost, alkalinity
+- groundwater_bore_1: storage_capacity, reference_flow, max_available, cost, alkalinity
+
+Additional notes on data provenance:
+- source_activation_cost is structurally 0.00: the formulation charges F_s per activated source, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.
+- plant_activation_cost is 0.00 because the toy case holds the single plant active and its fixed cost is set to 0 in the input contract.
+- Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.
+- Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits.
 
 ## Summary
 
-This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
+This scenario is OPTIMAL. Total cost: $184,150.00 AUD. 2 source(s) selected, 1 unused. Plant-inflow blend quality: PASS.
 
 
 ==============================================================================
@@ -268,7 +274,7 @@ python3 -c "
 import json
 from test_json_explainer import REFERENCE_JSON
 data = REFERENCE_JSON.copy()
-del data['water_quality']['after_treatment']['alkalinity']
+del data['water_quality']['by_plant']['facility_1']['alkalinity']
 with open('try_it.json', 'w') as f:
     json.dump(data, f, indent=2)
 "
@@ -292,32 +298,34 @@ The solution was limited by the available capacity of Yarra River, Kew: Yarra Ri
 
 ## Water Quality & Safety Margins
 
-alkalinity was not reported in the results and could not be assessed.
+alkalinity at facility_1 was not reported in the results and could not be assessed.
 
-All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+All tested plant-inflow blend quality parameters passed at facility_1. pH was closest to its limit, with a safety margin of 30.5%.
 
-The widest margin was on turbidity at 58.0%.
-
-Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+The widest margin at facility_1 was on turbidity at 34.0%.
 
 ## Sensitivity to Key Assumptions
 
-This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+This result is sensitive to cost_per_ml for groundwater_bore_1 (flagged estimated in the source view): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
 
-This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+This result is sensitive to max_available_ml_per_day for yarra_kew (flagged estimated in the source view): This constraint is currently binding; if real availability is lower than assumed, the model may become infeasible at this demand level.
 
 ## Estimated Fields / Data Limitations
 
-The following fields in this result are estimated rather than measured, and should be treated as provisional:
-- cost_per_ML (all sources)
-- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
-- treatment facility capacity and dosing rates (placeholder pending real data)
-- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
-- energy estimate (placeholder formula pending real pumping and treatment energy data)
+The following sources have one or more estimated fields, and should be treated as provisional:
+- silvan_reservoir: storage_capacity, reference_flow, max_available, cost, alkalinity
+- yarra_kew: storage_capacity, reference_flow, max_available, cost, alkalinity
+- groundwater_bore_1: storage_capacity, reference_flow, max_available, cost, alkalinity
+
+Additional notes on data provenance:
+- source_activation_cost is structurally 0.00: the formulation charges F_s per activated source, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.
+- plant_activation_cost is 0.00 because the toy case holds the single plant active and its fixed cost is set to 0 in the input contract.
+- Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.
+- Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits.
 
 ## Summary
 
-This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
+This scenario is OPTIMAL. Total cost: $184,150.00 AUD. 2 source(s) selected, 1 unused. Plant-inflow blend quality: PASS.
 
 
 ==============================================================================
@@ -355,11 +363,9 @@ The solution was limited by the available capacity of Yarra River, Kew: Yarra Ri
 
 ## Water Quality & Safety Margins
 
-All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+All tested plant-inflow blend quality parameters passed at facility_1. alkalinity was closest to its limit, with a safety margin of 22.6%.
 
-The widest margin was on turbidity at 58.0%.
-
-Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+The widest margin at facility_1 was on turbidity at 34.0%.
 
 ## Sensitivity to Key Assumptions
 
@@ -367,16 +373,20 @@ No sensitivity information was reported for this scenario.
 
 ## Estimated Fields / Data Limitations
 
-The following fields in this result are estimated rather than measured, and should be treated as provisional:
-- cost_per_ML (all sources)
-- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
-- treatment facility capacity and dosing rates (placeholder pending real data)
-- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
-- energy estimate (placeholder formula pending real pumping and treatment energy data)
+The following sources have one or more estimated fields, and should be treated as provisional:
+- silvan_reservoir: storage_capacity, reference_flow, max_available, cost, alkalinity
+- yarra_kew: storage_capacity, reference_flow, max_available, cost, alkalinity
+- groundwater_bore_1: storage_capacity, reference_flow, max_available, cost, alkalinity
+
+Additional notes on data provenance:
+- source_activation_cost is structurally 0.00: the formulation charges F_s per activated source, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.
+- plant_activation_cost is 0.00 because the toy case holds the single plant active and its fixed cost is set to 0 in the input contract.
+- Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.
+- Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits.
 
 ## Summary
 
-This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
+This scenario is OPTIMAL. Total cost: $184,150.00 AUD. 2 source(s) selected, 1 unused. Plant-inflow blend quality: PASS.
 
 
 ==============================================================================
@@ -418,30 +428,32 @@ The solution was limited by the available capacity of Yarra River, Kew: Yarra Ri
 
 ## Water Quality & Safety Margins
 
-All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+All tested plant-inflow blend quality parameters passed at facility_1. alkalinity was closest to its limit, with a safety margin of 22.6%.
 
-The widest margin was on turbidity at 58.0%.
-
-Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+The widest margin at facility_1 was on turbidity at 34.0%.
 
 ## Sensitivity to Key Assumptions
 
-This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+This result is sensitive to cost_per_ml for groundwater_bore_1 (flagged estimated in the source view): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
 
-This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+This result is sensitive to max_available_ml_per_day for yarra_kew (flagged estimated in the source view): This constraint is currently binding; if real availability is lower than assumed, the model may become infeasible at this demand level.
 
 ## Estimated Fields / Data Limitations
 
-The following fields in this result are estimated rather than measured, and should be treated as provisional:
-- cost_per_ML (all sources)
-- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
-- treatment facility capacity and dosing rates (placeholder pending real data)
-- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
-- energy estimate (placeholder formula pending real pumping and treatment energy data)
+The following sources have one or more estimated fields, and should be treated as provisional:
+- silvan_reservoir: storage_capacity, reference_flow, max_available, cost, alkalinity
+- yarra_kew: storage_capacity, reference_flow, max_available, cost, alkalinity
+- groundwater_bore_1: storage_capacity, reference_flow, max_available, cost, alkalinity
+
+Additional notes on data provenance:
+- source_activation_cost is structurally 0.00: the formulation charges F_s per activated source, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.
+- plant_activation_cost is 0.00 because the toy case holds the single plant active and its fixed cost is set to 0 in the input contract.
+- Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.
+- Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits.
 
 ## Summary
 
-This scenario is OPTIMAL. Total cost: not reported. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
+This scenario is OPTIMAL. Total cost: not reported. 2 source(s) selected, 1 unused. Plant-inflow blend quality: PASS.
 
 
 ==============================================================================
@@ -449,8 +461,8 @@ This scenario is OPTIMAL. Total cost: not reported. 2 source(s) selected, 1 unus
 SAMPLE 9: Binding constraints listed out of category order
 Same input, but binding_constraints_summary deliberately lists turbidity
 first, then demand, then capacity - to show Output composition's fixed
-category order (Demand, Source-capacity, Source-activation,
-Treatment-capacity, Water-quality) governs rendering order, not JSON order
+category order (Demand, Source-capacity, Plant-capacity, Link-capacity,
+Water-quality) governs rendering order, not JSON order
 
 To reproduce this exact sample yourself, run:
 
@@ -458,7 +470,7 @@ python3 -c "
 import json
 from test_json_explainer import REFERENCE_JSON
 data = REFERENCE_JSON.copy()
-data['binding_constraints_summary'] = ['turbidity_range', 'demand_satisfaction_zone_1', 'yarra_kew_capacity']
+data['binding_constraints_summary'] = ['quality_range_turbidity_facility_1', 'demand_satisfaction_zone_1', 'source_capacity_yarra_kew']
 with open('try_it.json', 'w') as f:
     json.dump(data, f, indent=2)
 "
@@ -480,31 +492,98 @@ The solution was limited by the water demand for zone_1: the full 500 ML needed 
 
 The solution was limited by the available capacity of Yarra River, Kew: Yarra River, Kew was drawn up to the most its capacity allows (290 ML, estimated), so any additional water had to come from other sources.
 
-The solution was limited by the turbidity limit: turbidity sat right at the edge of its safe range (0–5.0 NTU, estimated), so the blend could not be pushed any further.
+The solution was limited by the turbidity limit at facility_1: turbidity sat right at the edge of its safe range (0–8.0 NTU), so the blend could not be pushed any further.
 
 ## Water Quality & Safety Margins
 
-All tested quality parameters passed. pH was closest to its limit, with a safety margin of 21.4%.
+All tested plant-inflow blend quality parameters passed at facility_1. alkalinity was closest to its limit, with a safety margin of 22.6%.
 
-The widest margin was on turbidity at 58.0%.
-
-Note: this assessment relies on estimated data for quality readings for groundwater_bore_1 (pH, alkalinity, turbidity) and should be treated as provisional.
+The widest margin at facility_1 was on turbidity at 34.0%.
 
 ## Sensitivity to Key Assumptions
 
-This result is sensitive to cost_per_ML for groundwater_bore_1 (estimated): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+This result is sensitive to cost_per_ml for groundwater_bore_1 (flagged estimated in the source view): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
 
-This result is sensitive to yarra_kew daily capacity (estimated pending real withdrawal-rate data): This constraint is currently binding; if real capacity is lower than assumed, the model may become infeasible at this demand level.
+This result is sensitive to max_available_ml_per_day for yarra_kew (flagged estimated in the source view): This constraint is currently binding; if real availability is lower than assumed, the model may become infeasible at this demand level.
 
 ## Estimated Fields / Data Limitations
 
-The following fields in this result are estimated rather than measured, and should be treated as provisional:
-- cost_per_ML (all sources)
-- quality readings for groundwater_bore_1 (pH, alkalinity, turbidity)
-- treatment facility capacity and dosing rates (placeholder pending real data)
-- reservoir and river capacity currently represented as a conservative fraction of usable storage or observed flow, pending real daily safe yield data
-- energy estimate (placeholder formula pending real pumping and treatment energy data)
+The following sources have one or more estimated fields, and should be treated as provisional:
+- silvan_reservoir: storage_capacity, reference_flow, max_available, cost, alkalinity
+- yarra_kew: storage_capacity, reference_flow, max_available, cost, alkalinity
+- groundwater_bore_1: storage_capacity, reference_flow, max_available, cost, alkalinity
+
+Additional notes on data provenance:
+- source_activation_cost is structurally 0.00: the formulation charges F_s per activated source, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.
+- plant_activation_cost is 0.00 because the toy case holds the single plant active and its fixed cost is set to 0 in the input contract.
+- Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.
+- Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits.
 
 ## Summary
 
-This scenario is OPTIMAL. Total cost: $184,250.00 AUD. 2 source(s) selected, 1 unused. Water quality after treatment: PASS.
+This scenario is OPTIMAL. Total cost: $184,150.00 AUD. 2 source(s) selected, 1 unused. Plant-inflow blend quality: PASS.
+
+
+==============================================================================
+
+SAMPLE 10: Link-capacity binding (source-to-plant and plant-to-zone)
+A category missing entirely before this fix - link_capacity_<from>_to_<to>
+is a real inequality constraint per the confirmed output contract and can
+appear in binding_constraints_summary, but had no rendering logic at all.
+
+To reproduce this exact sample yourself, run:
+
+python3 -c "
+import json
+from test_json_explainer import REFERENCE_JSON
+data = REFERENCE_JSON.copy()
+data['binding_constraints_summary'] = ['link_capacity_silvan_reservoir_to_facility_1', 'link_capacity_facility_1_to_zone_1']
+with open('try_it.json', 'w') as f:
+    json.dump(data, f, indent=2)
+"
+python3 json_explainer.py try_it.json
+
+==============================================================================
+
+## Selected & Unused Sources
+
+Yarra River, Kew supplied 58.0% of the blend (290 ML) at $235.00 AUD/ML (estimated), because it is the cheapest available source for this scenario, with capacity remaining.
+
+Silvan Reservoir supplied 42.0% of the blend (210 ML) at $400.00 AUD/ML (estimated), because it supplemented the blend, at the second lowest cost, to meet remaining demand after lower-cost sources reached capacity.
+
+Groundwater Bore 1 was not selected because Higher cost per ML than the selected sources with no quality benefit large enough to justify inclusion for this demand level.
+
+## Binding Constraints
+
+The solution was limited by the connection from Silvan Reservoir to Treatment Facility 1: this link was carrying as much flow as it can handle (210 ML), so any additional water had to route another way.
+
+The solution was limited by the connection from Treatment Facility 1 to Zone 1: this link was carrying as much flow as it can handle (500 ML), so any additional water had to route another way.
+
+## Water Quality & Safety Margins
+
+All tested plant-inflow blend quality parameters passed at facility_1. alkalinity was closest to its limit, with a safety margin of 22.6%.
+
+The widest margin at facility_1 was on turbidity at 34.0%.
+
+## Sensitivity to Key Assumptions
+
+This result is sensitive to cost_per_ml for groundwater_bore_1 (flagged estimated in the source view): If actual groundwater cost is 20 percent lower than estimated, groundwater_bore_1 would likely enter the optimal blend instead of remaining unused.
+
+This result is sensitive to max_available_ml_per_day for yarra_kew (flagged estimated in the source view): This constraint is currently binding; if real availability is lower than assumed, the model may become infeasible at this demand level.
+
+## Estimated Fields / Data Limitations
+
+The following sources have one or more estimated fields, and should be treated as provisional:
+- silvan_reservoir: storage_capacity, reference_flow, max_available, cost, alkalinity
+- yarra_kew: storage_capacity, reference_flow, max_available, cost, alkalinity
+- groundwater_bore_1: storage_capacity, reference_flow, max_available, cost, alkalinity
+
+Additional notes on data provenance:
+- source_activation_cost is structurally 0.00: the formulation charges F_s per activated source, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.
+- plant_activation_cost is 0.00 because the toy case holds the single plant active and its fixed cost is set to 0 in the input contract.
+- Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.
+- Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits.
+
+## Summary
+
+This scenario is OPTIMAL. Total cost: $184,150.00 AUD. 2 source(s) selected, 1 unused. Plant-inflow blend quality: PASS.
