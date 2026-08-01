@@ -81,9 +81,9 @@ This is documented as an **expected infeasible result**, not an error:
 
 This satisfies the checklist requirement to document possible infeasibility, and demonstrates that the model correctly reports infeasibility when the only treatment path is lost, rather than silently returning a partial or fabricated result.
 
-### 4.3 No fake after-treatment values
+### 4.3 No invented plant-inflow blend quality values
 
-Per the task's checklist, no fake after-treatment or water-quality values are created for this scenario. Since no source-to-plant flow occurs when `facility_1` is disabled, `water_quality.by_plant` should have no entry for `facility_1` in the resulting output (per the output specification, Section 3.7: "a plant with zero inflow has no defined blend and is omitted").
+Per the task's checklist, no invented water-quality values are created for this scenario. `water_quality.by_plant` reports the blend arriving at a plant's inflow, not final treated water (per the output specification, Section 3.7). Since no source-to-plant flow occurs when `facility_1` is disabled, `water_quality.by_plant` should have no entry for `facility_1` in the resulting output ("a plant with zero inflow has no defined blend and is omitted").
 
 ---
 
@@ -114,7 +114,7 @@ No unofficial fields are added. No output-only fields (`volume_drawn_ml_per_day`
 - [x] Connectivity after the outage is checked (Section 4.2)
 - [x] Remaining treatment capacity is checked (0 ML/day, facility fully disabled)
 - [x] Possible infeasibility is documented (Section 4.2)
-- [x] Fake after-treatment values are not created when no treatment occurs (Section 4.3)
+- [x] No invented plant-inflow blend quality values are created when no treatment occurs (Section 4.3)
 
 ---
 
@@ -126,12 +126,12 @@ No unofficial fields are added. No output-only fields (`volume_drawn_ml_per_day`
 | Required demand | Available before solving (600 ML/day) | Available before solving (500 ML/day) |
 | Basic capacity margin | Available before solving (110 ML/day) | Not meaningful — no active treatment path |
 | Solver feasibility status | Pending MILP run | Expected `INFEASIBLE`, pending MILP run to confirm |
-| Demand satisfaction percentage (KPI 2) | Pending MILP run, expect near 100% given capacity margin | Calculable and expected to be 0%, since `volume_supplied_ml_per_day` is structurally 0 when `facility_1` is disabled — this is a valid KPI 2 result, not a missing value, and should be recorded as 0% rather than N/A |
+| Demand satisfaction percentage (KPI 2) | Pending MILP run, expect near 100% given capacity margin | Not applicable — pending MILP run. Since the expected solver status is `INFEASIBLE`, there is no valid solved `volume_supplied_ml_per_day` to report, so KPI 2 should be marked unavailable rather than 0%. The pre-solve check (Section 4.2) separately confirms no active treatment capacity exists, which is why infeasibility is expected. |
 | Selected source volumes | Pending MILP run | Not applicable — expected infeasible |
 | Blend percentages | Pending MILP run | Not applicable — expected infeasible |
 | Total cost | Pending MILP run | Not applicable — expected infeasible |
 | Binding constraints | Pending MILP run — plant capacity expected to bind (Section 3.3) | Not applicable — expected infeasible |
-| Water-quality safety margins | Pending MILP run | Not applicable — no blend at facility_1 (Section 4.3) |
+| Water-quality safety margins | Pending MILP run | Not applicable — no plant-inflow blend at facility_1 (Section 4.3) |
 
 ---
 
