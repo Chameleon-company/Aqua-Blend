@@ -1,5 +1,5 @@
 {
-  "scenario_id": "scenario_2026_07_17_001",
+  "scenario_id": "toy_model_dry_year",
   "scenario_name": "Dry-year scenario — differentiated supply reductions",
   "status": "draft",
   "description": "Applies a 20% reduction to Silvan Reservoir and Yarra Kew maximum flow limits, and a 25% reduction to Groundwater Bore 1 using a Victorian groundwater-management proxy.",
