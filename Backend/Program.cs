@@ -1,3 +1,5 @@
+using AquaBlend.Api.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using AquaBlend.Data;
 
@@ -10,6 +12,29 @@ builder.Services.AddScoped<AquaBlend.Services.ScenarioService>();
 builder.Services.AddDbContext<AquaBlendDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(
+        AppPolicies.CanView,
+        policy => policy.RequireRole(
+            AppRoles.Admin,
+            AppRoles.Analyst,
+            AppRoles.Viewer));
+
+    options.AddPolicy(
+        AppPolicies.CanAnalyse,
+        policy => policy.RequireRole(
+            AppRoles.Admin,
+            AppRoles.Analyst));
+
+    options.AddPolicy(
+        AppPolicies.CanAdminister,
+        policy => policy.RequireRole(AppRoles.Admin));
+});
 var app = builder.Build();
 
 // Apply migrations and seed data on startup
@@ -27,6 +52,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // AquaBlend health-check endpoint
 app.MapGet("/api/health", () =>
