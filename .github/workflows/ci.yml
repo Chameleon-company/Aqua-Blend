@@ -1,0 +1,36 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - backend/sprint-1
+      - "feature/**"
+  pull_request:
+    branches:
+      - backend/sprint-1
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore AquaBlend.sln
+
+      - name: Build
+        run: dotnet build AquaBlend.sln --no-restore
+
+      - name: Test
+        run: dotnet test AquaBlend.sln --no-build --verbosity normal
