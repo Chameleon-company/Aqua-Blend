@@ -24,14 +24,14 @@ The evaluator must compare the explanation against these exact JSON paths where 
 | Explanation area | Primary JSON evidence |
 |---|---|
 | Scenario and solve status | `scenario_id`, `status` |
-| Demand supplied | `demand_zones[].required_volume_ML`, `demand_zones[].volume_supplied_ML` |
+| Demand supplied | `demand_zones[].demand_ml_per_day`, `demand_zones[].volume_supplied_ml_per_day` |
 | Selected sources | `sources.selected[]` |
 | Unused sources and reasons | `sources.unused[]` |
 | Binding constraints | `binding_constraints_summary[]` and `constraints[]` |
-| Treated-water quality | `water_quality.after_treatment` |
-| Safety margins | `water_quality.after_treatment.*.safety_margin_percent` |
+| Plant-inflow blend quality | `water_quality.applies_to`, `water_quality.by_plant.<plant_id>.` |
+| Safety margins | `water_quality.by_plant.<plant_id>.*.safety_margin_percent` |
 | Units | Unit fields contained in the relevant JSON objects |
-| Estimated inputs and limitations | `data_flags.estimated_fields[]` |
+| Estimated inputs and limitations | `data_flags.sources[].has_estimated_values`, `data_flags.sources[].provenance`, `data_flags.notes[]` |
 | Sensitivity to assumptions | `sensitivity_to_key_assumptions[]` |
 
 The evaluator must not use outside knowledge to add facts that are absent from the JSON.
@@ -61,10 +61,10 @@ Each criterion must be marked `PASS`, `FAIL`, or `N/A`. Use `N/A` only when the 
 | C2 | Correct unused sources | Every source described as unused matches `sources.unused[]`, and required unused sources are identified. | An unused source is presented as selected, a required unused source is omitted from a complete explanation, or its status is wrong. |
 | C3 | Correct binding constraints | All constraints in `binding_constraints_summary[]` are reported or clearly explained without identifying non-binding constraints as binding. | A binding constraint is omitted from the binding-constraints section, a non-binding constraint is called binding, or the explanation reverses the meaning. |
 | C4 | No invented numbers | Every stated number is present in the JSON or directly calculated using an explicitly stated formula. | A number is fabricated, altered, guessed, or presented without JSON support. |
-| C5 | No invented reasons | Reasons for selection, exclusion, limitations, or outcomes are copied or faithfully paraphrased from JSON evidence. | The explanation invents a cause, such as contamination, reliability, or quality benefit, that is not supported by the JSON. |
-| C6 | Correct quality status | PASS/FAIL/violation statements match `water_quality.after_treatment.*.status` and the reported values and limits. | A failed parameter is called safe/pass, a passed parameter is called failed, or after-blending quality is confused with after-treatment compliance. |
+| C5 | No invented reasons | Reasons for selection, exclusion, limitations, or outcomes are copied or faithfully paraphrased from JSON evidence. For unused sources, a reason is evaluated or reported only when `sources.unused[].reason` is available. | The explanation invents a cause, such as contamination, reliability, or quality benefit, that is not supported by the JSON, or invents a reason for an unused source when `sources.unused[].reason` is absent. |
+| C6 | Correct quality status | PASS/FAIL/violation statements match the reported values and limits in `water_quality.by_plant.<plant_id>.`, interpreted according to `water_quality.applies_to`. | A failed parameter is called safe/pass, a passed parameter is called failed, or plant-inflow blend quality is described as final treated drinking water or proof of regulatory compliance. |
 | C7 | Correct units | Units are copied correctly. pH is not labelled with an incorrect physical unit; alkalinity uses `mg/L CaCO3`; turbidity uses `NTU`; volume uses `ML`; cost uses `AUD`. | A unit is wrong, misleading, or attached to the wrong value. |
-| C8 | Estimated fields disclosed | The explanation contains a clear limitations/estimated-fields section that discloses the material items in `data_flags.estimated_fields[]`, or accurately states that no estimated fields are listed. | Estimated inputs are presented as confirmed real measurements, the explanation contains no meaningful disclosure despite listed estimated fields, or material limitations are concealed. |
+| C8 | Estimated fields disclosed | The explanation contains a clear limitations/estimated-fields section using `data_flags.sources[].has_estimated_values`, `data_flags.sources[].provenance`, and `data_flags.notes[]`, or accurately states that no estimated values are indicated. | Estimated inputs are presented as confirmed real measurements, the explanation contains no meaningful disclosure despite estimated values or provenance notes being present, or material limitations are concealed. |
 | C9 | Unsafe results are not described as safe | Any failed quality result, unmet demand, infeasible solve, or negative safety margin is clearly identified as unsafe, infeasible, or requiring review. | An unsafe, infeasible, incomplete, or failed result is described as safe, optimal for operation, or acceptable. |
 
 ### Overall critical decision
@@ -72,11 +72,13 @@ Each criterion must be marked `PASS`, `FAIL`, or `N/A`. Use `N/A` only when the 
 - **PASS:** Every applicable critical criterion passes.
 - **FAIL:** One or more applicable critical criteria fail.
 
-For the current reference JSON, C9 passes because all treated-water quality statuses are `PASS`, the solve status is `OPTIMAL`, and demand is fully supplied. However, this must be rechecked for every new JSON input.
+For the current reference JSON, C9 passes because all plant-inflow blend quality statuses are `PASS`, the solve status is `OPTIMAL`, and demand is fully supplied. However, this must be rechecked for every new JSON input.
 
 ## 5. Scored Criteria: 1 to 5
 
 Scores measure quality after critical checks. Use whole numbers only.
+
+**Intermediate scores:** Scores **2** and **4** are intermediate scores between the defined **1, 3, and 5** levels. A score of **2** is used when performance falls between levels 1 and 3, and a score of **4** is used when performance falls between levels 3 and 5. A short justification must be provided whenever a score of 2 or 4 is assigned.
 
 ### S1. Factual Accuracy
 
@@ -225,7 +227,7 @@ Although this explanation appears clear and technically sound, several statement
 | **C5 – No Invented Reasons** | ❌ FAIL | The explanation invents a quality-related reason for selecting Groundwater Bore 1 that is not supported by the optimisation results. |
 | **C6 – Correct Water Quality Status** | ❌ FAIL | The explanation incorrectly states that turbidity is the closest parameter to its regulatory limit. The Results JSON shows that **pH** has the smallest safety margin (21.4%). |
 | **C7 – Correct Units** | ✅ PASS | No incorrect measurement units are used in this example. |
-| **C8 – Estimated Fields Disclosed** | ❌ FAIL | The explanation incorrectly claims that all data are operationally verified, even though several estimated fields are identified within `data_flags.estimated_fields[]`. |
+| **C8 – Estimated Fields Disclosed** | ❌ FAIL | The explanation incorrectly claims that all data are operationally verified, even though estimated values and provenance information are identified within `data_flags.sources[].has_estimated_values`, `data_flags.sources[].provenance`, and `data_flags.notes[]`. |
 | **C9 – Unsafe Results Not Reported as Safe** | ✅ PASS | No unsafe optimisation results are incorrectly described as safe. |
 
 ### Step 2 – Determine the Outcome
@@ -256,7 +258,7 @@ The reviewer should:
 2. Read the explanation being evaluated.
 3. Apply all applicable Critical Pass/Fail Criteria described in Section 4.
 4. If all applicable critical criteria pass, evaluate the explanation using the six Scored Criteria described in Section 5.
-5. Assign scores using the defined **5–3–1 scoring scale**.
+5. Assign scores using the defined **1, 3, and 5 anchor levels**, with scores 2 and 4 used only as justified intermediate scores.
 6. Calculate the total score.
 7. Determine the overall outcome (**PASS**, **REVISE**, or **FAIL**).
 8. Record supporting comments for each criterion where appropriate.
