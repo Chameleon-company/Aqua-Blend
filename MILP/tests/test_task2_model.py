@@ -1,12 +1,12 @@
 """
-Unit tests for Task 2: Decision Variables and Objective Function
+Unit tests: Decision Variables and Objective Function
 """
 
 import unittest
 import sys
 sys.path.insert(0, '.')
 
-from MILP.task_2_decision_variables.model import AquaBlendOptimizationModel
+from MILP.decision_variables.model import AquaBlendOptimizationModel
 
 class TestTask2Model(unittest.TestCase):
     """Test cases for AquaBlend optimization model"""

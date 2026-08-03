@@ -6,7 +6,7 @@ Demonstrates how to use the AquaBlendOptimizationModel class
 import sys
 sys.path.insert(0, '.')
 
-from MILP.task_2_decision_variables.model import AquaBlendOptimizationModel
+from MILP.decision_variables.model import AquaBlendOptimizationModel
 
 def main():
     """Run example optimization model"""
