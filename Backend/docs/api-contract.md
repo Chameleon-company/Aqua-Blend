@@ -1,11 +1,28 @@
-# API Contract
+# AquaBlend API Contract
 
-## Overview
+## 1. Overview
 
-This document captures the initial API scaffolding expectations for Sprint 1.
+This document defines the REST API contract for the AquaBlend backend.
 
-## Notes
+The API is implemented using ASP.NET Core and exposes JSON REST endpoints under
+the `/api` route prefix.
 
-- Preserve the existing health endpoint at `/api/health`.
-- Use controller-based routing for future REST endpoints.
-- Keep the API contract simple and extension-friendly for upcoming team work.
+The backend is responsible for:
+
+- Water source management
+- Scenario management
+- Optimisation result retrieval
+- Automatic change detection
+- Health monitoring
+- Authenticated user information
+
+All timestamps returned by the API are UTC.
+
+---
+
+## 2. Base URL
+
+Local development:
+
+```text
+http://localhost:5194
