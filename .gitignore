@@ -1,0 +1,35 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+\.vs/
+
+# Test and coverage output
+[Tt]est[Rr]esults/
+\.trx
+coverage/
+coverage.*
+*.coverage
+*.coveragexml
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
+secrets.*.json
+
+# User and IDE files
+*.user
+*.suo
+*.userosscache
+*.rsuser
+.vscode/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp

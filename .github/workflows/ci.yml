@@ -1,0 +1,50 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - master
+      - backend/sprint-1
+      - "sprint2/**"
+      - "sprint3/**"
+      - "feature/**"
+  pull_request:
+    branches:
+      - master
+      - backend/sprint-1
+      - "sprint2/**"
+      - "sprint3/**"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('Backend/**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore AquaBlend.sln
+
+      - name: Build
+        run: dotnet build AquaBlend.sln --no-restore
+
+      - name: Test
+        run: dotnet test AquaBlend.sln --no-build --verbosity normal
