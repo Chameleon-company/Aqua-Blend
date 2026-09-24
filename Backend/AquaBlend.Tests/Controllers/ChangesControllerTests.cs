@@ -28,7 +28,7 @@ public sealed class ChangesControllerTests
     }
 
     [Fact]
-    public async Task GetChanges_ReturnsChangedWaterSourceScenarioAndOptimisationResult()
+    public async Task GetChanges_ReturnsChangedWaterSourceScenarioRunAndOptimisationResult()
     {
         var options = new DbContextOptionsBuilder<AquaBlendDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -56,8 +56,23 @@ public sealed class ChangesControllerTests
 
         await context.SaveChangesAsync();
 
+        var optimisationRun = new OptimisationRun
+        {
+            ScenarioId = scenario.Id,
+            Scenario = scenario,
+            WorkflowStatus = "solved",
+            SolverStatus = "OPTIMAL",
+            ScenarioSnapshotJson = "{}"
+        };
+
+        context.OptimisationRuns.Add(optimisationRun);
+
+        await context.SaveChangesAsync();
+
         var optimisationResult = new OptimisationResult
         {
+            RunId = optimisationRun.Id,
+            Run = optimisationRun,
             ScenarioId = scenario.Id,
             Scenario = scenario,
             Status = "OPTIMAL",
@@ -86,6 +101,7 @@ public sealed class ChangesControllerTests
 
         Assert.Single(response.WaterSources);
         Assert.Single(response.Scenarios);
+        Assert.Single(response.OptimisationRuns);
         Assert.Single(response.OptimisationResults);
 
         Assert.Equal(
@@ -97,8 +113,24 @@ public sealed class ChangesControllerTests
             response.Scenarios[0].Name);
 
         Assert.Equal(
+            "solved",
+            response.OptimisationRuns[0].WorkflowStatus);
+
+        Assert.Equal(
+            "OPTIMAL",
+            response.OptimisationRuns[0].SolverStatus);
+
+        Assert.Equal(
+            scenario.Id,
+            response.OptimisationRuns[0].ScenarioId);
+
+        Assert.Equal(
             "OPTIMAL",
             response.OptimisationResults[0].Status);
+
+        Assert.Equal(
+            scenario.Id,
+            response.OptimisationResults[0].ScenarioId);
     }
 
     [Fact]
@@ -118,19 +150,15 @@ public sealed class ChangesControllerTests
 
         context.Scenarios.Add(scenario);
 
-        // ApplyTimestamps sets CreatedAt and UpdatedAt to the same value on
-        // insert, so a real delay is needed before capturing `since` or the
-        // insert's own timestamp could land on or after it.
         await context.SaveChangesAsync();
         await Task.Delay(50);
 
         var since = DateTime.UtcNow;
 
-        // Another real delay so the update's UpdatedAt lands strictly after
-        // `since` rather than possibly matching it.
         await Task.Delay(50);
 
         scenario.Description = "Updated after the since threshold";
+
         await context.SaveChangesAsync();
 
         var controller = new ChangesController(context);
@@ -146,17 +174,76 @@ public sealed class ChangesControllerTests
 
         var returned = Assert.Single(response.Scenarios);
 
-        // This is the crux of the test: the record must have been created
-        // before `since`, so it can only appear in the response via the
-        // UpdatedAt clause. Without this assertion, a timing slip could put
-        // CreatedAt after `since`, letting the CreatedAt clause alone
-        // satisfy the test while a missing/broken UpdatedAt clause goes
-        // undetected.
         Assert.True(returned.CreatedAt <= since);
 
         Assert.Equal(
             "Updated after the since threshold",
             returned.Description);
+    }
+
+    [Fact]
+    public async Task GetChanges_RunUpdatedAfterSince_IsReturnedViaUpdatedAtClause()
+    {
+        var options = new DbContextOptionsBuilder<AquaBlendDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new AquaBlendDbContext(options);
+
+        var scenario = new Scenario
+        {
+            Name = "Run Status Scenario",
+            Description = "Scenario used for run polling test"
+        };
+
+        context.Scenarios.Add(scenario);
+        await context.SaveChangesAsync();
+
+        var optimisationRun = new OptimisationRun
+        {
+            ScenarioId = scenario.Id,
+            Scenario = scenario,
+            WorkflowStatus = "queued",
+            ScenarioSnapshotJson = "{}"
+        };
+
+        context.OptimisationRuns.Add(optimisationRun);
+
+        await context.SaveChangesAsync();
+        await Task.Delay(50);
+
+        var since = DateTime.UtcNow;
+
+        await Task.Delay(50);
+
+        optimisationRun.WorkflowStatus = "solving";
+
+        await context.SaveChangesAsync();
+
+        var controller = new ChangesController(context);
+
+        var result = await controller.GetChanges(
+            since.ToString("O"),
+            CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+
+        var response =
+            Assert.IsType<ChangesResponseDto>(okResult.Value);
+
+        var returned = Assert.Single(response.OptimisationRuns);
+
+        // The run existed before the threshold, so it should only be
+        // returned because UpdatedAt changed after `since`.
+        Assert.True(returned.CreatedAt <= since);
+
+        Assert.Equal(
+            "solving",
+            returned.WorkflowStatus);
+
+        Assert.Equal(
+            scenario.Id,
+            returned.ScenarioId);
     }
 
     [Fact]
@@ -184,6 +271,7 @@ public sealed class ChangesControllerTests
 
         Assert.Empty(response.WaterSources);
         Assert.Empty(response.Scenarios);
+        Assert.Empty(response.OptimisationRuns);
         Assert.Empty(response.OptimisationResults);
     }
 }

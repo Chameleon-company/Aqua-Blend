@@ -11,6 +11,14 @@ public class OptimisationRun
 
     public string? SolverStatus { get; set; }
 
+    // Populated when WorkflowStatus is "failed".
+    // Describes why the workflow failed.
+    public string? FailureReason { get; set; }
+
+    // Identifies which component declared the failure,
+    // for example "ai" or "backend".
+    public string? FailureSource { get; set; }
+
     public string ScenarioSnapshotJson { get; set; } = "{}";
 
     public OptimisationResult? Result { get; set; }
