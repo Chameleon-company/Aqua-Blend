@@ -45,7 +45,7 @@ public class ReferenceDataEndpointsTests : IDisposable
         Assert.NotEmpty(sources!);
 
         var reservoirA = sources!.Single(s => s.Name == "Reservoir A");
-        Assert.Equal("Surface", reservoirA.Type);
+        Assert.Equal("reservoir", reservoirA.Type);
         Assert.False(string.IsNullOrEmpty(reservoirA.AvailabilityStatus));
         Assert.False(string.IsNullOrEmpty(reservoirA.AvailabilityOrigin));
     }
