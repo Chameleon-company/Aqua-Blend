@@ -13,6 +13,18 @@ import pandas as pd
 df = pd.read_csv("Barwon_Cleaned.csv")
 
 
+required_input_columns = ["Site ID", "Name", "Datetime", "Parameter", "Value"]
+
+missing_columns = [
+    col for col in required_input_columns if col not in df.columns
+]
+
+if missing_columns:
+    raise ValueError(
+        f"Missing required input columns: {', '.join(missing_columns)}"
+    )
+
+
 df = df.rename(columns={
     "Site ID": "site_id",
     "Name": "source_name",
