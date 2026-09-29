@@ -8,7 +8,7 @@ Purpose:
 - Download available readings and save clean CSV + raw CSV.
 
 Run:
-    python groundwater_fixed.py
+    python groundwater_three_parameters.py
 """
 
 import json
