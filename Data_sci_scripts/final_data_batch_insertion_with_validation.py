@@ -30,7 +30,14 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-CSV_FILE = "WMIS_Batch2_cleaned (3).csv"
+
+CSV_FILE = os.getenv(
+    "WMIS_CSV_FILE",
+    "WMIS_Batch2_cleaned (3).csv"
+).strip()
+
+if not CSV_FILE:
+    raise ValueError("WMIS_CSV_FILE must not be blank.")
 
 TABLE_NAME = os.getenv("SUPABASE_TABLE", "Final_Data").strip()
 
