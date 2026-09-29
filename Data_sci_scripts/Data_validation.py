@@ -27,25 +27,49 @@ print("\nDuplicate Records:", duplicates)
 
 
 
+raw_datetime = df["Datetime"].copy()
+
 df["Datetime"] = pd.to_datetime(
     df["Datetime"],
     errors="coerce"
 )
 
-invalid_dates = df["Datetime"].isnull().sum()
+invalid_date_rows = df[df["Datetime"].isnull()]
+invalid_dates = len(invalid_date_rows)
 
 print("\nInvalid Date/Time Records:", invalid_dates)
 
+if invalid_dates > 0:
+    print("\nRecords with invalid Date/Time (original value shown):")
+    print(
+        invalid_date_rows
+        .assign(**{"Original Datetime": raw_datetime[invalid_date_rows.index]})
+        [["Original Datetime", "Parameter", "Value"]]
+        .head(20)
+    )
 
+
+
+raw_value = df["Value"].copy()
 
 df["Value"] = pd.to_numeric(
     df["Value"],
     errors="coerce"
 )
 
-invalid_values = df["Value"].isnull().sum()
+invalid_value_rows = df[df["Value"].isnull()]
+invalid_values = len(invalid_value_rows)
 
 print("\nInvalid Numeric Values:", invalid_values)
+
+if invalid_values > 0:
+    print("\nRecords with invalid Value (original value shown):")
+    print(
+        invalid_value_rows
+        .assign(**{"Original Value": raw_value[invalid_value_rows.index]})
+        [["Datetime", "Parameter", "Original Value"]]
+        .head(20)
+    )
 
 
 
