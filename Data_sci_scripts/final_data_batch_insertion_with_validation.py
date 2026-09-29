@@ -31,7 +31,11 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 CSV_FILE = "WMIS_Batch2_cleaned (3).csv"
-TABLE_NAME = "Final_Data"
+
+TABLE_NAME = os.getenv("SUPABASE_TABLE", "Final_Data").strip()
+
+if not TABLE_NAME:
+    raise ValueError("SUPABASE_TABLE must not be blank.")
 
 # Moderate batch sizes reduce request payloads and make failed ranges easier
 # to identify and retry without sending the entire dataset again.
