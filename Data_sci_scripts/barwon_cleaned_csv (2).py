@@ -22,10 +22,11 @@ df = df.rename(columns={
 
 
 final_df = df.pivot_table(
+    aggfunc="first"
     index=["site_id", "source_name", "measurement_datetime"],
     columns="Parameter",
     values="Value",
-    aggfunc="first"
+    
 ).reset_index()
 
 
