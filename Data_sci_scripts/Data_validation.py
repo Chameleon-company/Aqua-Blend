@@ -1,5 +1,3 @@
-
-
 import pandas as pd
 import numpy as np
 
@@ -77,13 +75,26 @@ unit_check = (
 print(unit_check)
 
 
-Q1 = df["Value"].quantile(0.25)
-Q3 = df["Value"].quantile(0.75)
+# IQR outlier check, calculated separately for each parameter.
+# Each water-quality parameter has its own range and unit, so a single
+# IQR across the whole Value column would give misleading results.
 
-IQR = Q3 - Q1
+outlier_bounds = (
+    df.groupby("Parameter")["Value"]
+    .quantile([0.25, 0.75])
+    .unstack()
+    .rename(columns={0.25: "Q1", 0.75: "Q3"})
+)
 
-lower_limit = Q1 - 1.5 * IQR
-upper_limit = Q3 + 1.5 * IQR
+outlier_bounds["IQR"] = outlier_bounds["Q3"] - outlier_bounds["Q1"]
+outlier_bounds["Lower Limit"] = outlier_bounds["Q1"] - 1.5 * outlier_bounds["IQR"]
+outlier_bounds["Upper Limit"] = outlier_bounds["Q3"] + 1.5 * outlier_bounds["IQR"]
+
+print("\nIQR Outlier Limits per Parameter:")
+print(outlier_bounds)
+
+lower_limit = df["Parameter"].map(outlier_bounds["Lower Limit"])
+upper_limit = df["Parameter"].map(outlier_bounds["Upper Limit"])
 
 outliers = df[
     (df["Value"] < lower_limit) |
@@ -91,6 +102,9 @@ outliers = df[
 ]
 
 print("\nNumber of Statistical Outliers:", len(outliers))
+
+print("\nOutliers per Parameter:")
+print(outliers["Parameter"].value_counts())
 
 print("\nOutlier Records:")
 print(outliers[

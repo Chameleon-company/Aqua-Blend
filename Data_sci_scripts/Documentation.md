@@ -2,7 +2,7 @@
 
 Owner: Sandeep Mallipeddi
 Branch: `data-engineering-sandeep`
-Last updated: 6 September 2026
+Last updated: 29 September 2026
 
 ## Purpose
 
@@ -121,6 +121,34 @@ installed earlier by something else and never made it into the file.
        data cleaning script - murray and goulburn.py
      They still exist in git history and in local clones, so nothing is lost.
      Delete this block once they are back, and add them to the table above. -->
+
+## Data validation
+
+`Data_validation.py` loads a water quality CSV and reports on its condition
+before the data is used anywhere else. It checks for missing values, duplicate
+records, dates that fail to parse, non-numeric and negative values, the spread
+of quality codes, which units each parameter uses, statistical outliers, and pH
+readings outside the 0 to 14 range. It prints a summary at the end and saves the
+dataset as `Validated_water_quality.csv` in the folder you ran it from.
+
+Set `file_path` at the top of the script to your CSV before running it. With the
+virtual environment active, from the repository root:
+
+```
+python Data_sci_scripts\Data_validation.py
+```
+
+Outliers are found with the IQR method, calculated separately for each
+parameter. Every parameter gets its own Q1, Q3 and limits (1.5 × IQR beyond the
+quartiles), and each reading is only compared against the limits for its own
+parameter. This matters because parameters like pH, turbidity and conductivity
+sit on completely different scales and units, so one IQR across the whole
+`Value` column would flag normal high-range readings and miss real problems in
+low-range ones. The script prints the limits it used for each parameter and how
+many outliers each one had.
+
+Outliers are reported, not removed. Whether a flagged reading is dropped is a
+decision for the cleaning step, after someone has looked at it.
 
 ## Configuration and secrets
 
