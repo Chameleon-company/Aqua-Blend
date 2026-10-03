@@ -138,6 +138,6 @@ If a genuine new source type comes up (e.g. desalination, recycled water), it go
 contract first and reaches this project from there — this project mirrors the contract's vocabulary,
 it does not extend it independently.
 
-For any dev database seeded before this change, run Backend/Scripts/fix-source-type-vocabulary.sql
-to update existing rows (Surface → reservoir, Groundwater → groundwater). Safe to run more than
-once.
+Existing rows are normalised by the NormaliseWaterSourceTypes migration, which Program.cs applies
+on startup (Surface → reservoir, any casing of reservoir/river/groundwater → lowercase). No manual
+step is needed.
