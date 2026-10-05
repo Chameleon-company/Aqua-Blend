@@ -60,6 +60,7 @@ builder.Services.AddScoped<AquaBlend.Services.ScenarioService>();
 builder.Services.AddScoped<AquaBlend.Services.ScenarioValidationService>();
 builder.Services.AddScoped<RunService>();
 builder.Services.AddScoped<AquaBlend.Services.WaterSourceService>();
+builder.Services.AddScoped<AquaBlend.Services.ReferenceDataService>();
 
 const string AquaBlendFrontendPolicy = "AquaBlendFrontend";
 var allowedOrigins =

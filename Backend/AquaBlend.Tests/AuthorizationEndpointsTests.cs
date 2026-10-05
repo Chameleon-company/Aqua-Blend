@@ -179,4 +179,36 @@ public class AuthorizationEndpointsTests : IDisposable
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Theory]
+    [InlineData("/api/sources")]
+    [InlineData("/api/plants")]
+    [InlineData("/api/demand-zones")]
+    [InlineData("/api/network-links")]
+    [InlineData("/api/quality-profiles")]
+    public async Task Anonymous_GetReferenceData_ReturnsUnauthorized(string endpoint)
+    {
+        _client.DefaultRequestHeaders.Add("X-Test-Anonymous", "true");
+
+        var response = await _client.GetAsync(endpoint);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("/api/sources")]
+    [InlineData("/api/plants")]
+    [InlineData("/api/demand-zones")]
+    [InlineData("/api/network-links")]
+    [InlineData("/api/quality-profiles")]
+    public async Task Viewer_GetReferenceData_ReturnsOk(string endpoint)
+    {
+        // Reference data is read-only reference/config data - CanView (any
+        // authenticated role) is enough, there is no write path to lock down.
+        _client.DefaultRequestHeaders.Add("X-Test-Role", AppRoles.Viewer);
+
+        var response = await _client.GetAsync(endpoint);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 }
