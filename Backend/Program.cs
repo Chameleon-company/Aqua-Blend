@@ -1,4 +1,3 @@
-using AquaBlend.Api.Authorization;
 using AquaBlend.Api.Middleware;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
