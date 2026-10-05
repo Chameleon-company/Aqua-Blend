@@ -104,9 +104,22 @@ public class OptimisationResultEndpointTests : IDisposable
             context.Scenarios.Add(otherScenario);
             await context.SaveChangesAsync();
             otherScenarioId = otherScenario.Id;
- 
+
+            // The route filters through the result's run, so the second result
+            // needs a real run on the other scenario - without one it would be
+            // excluded for having no run, not for belonging to another scenario.
+            var otherRun = new OptimisationRun
+            {
+                ScenarioId = otherScenarioId,
+                WorkflowStatus = "completed",
+                SolverStatus = "OPTIMAL"
+            };
+            context.OptimisationRuns.Add(otherRun);
+            await context.SaveChangesAsync();
+
             context.OptimisationResults.Add(new OptimisationResult
             {
+                RunId = otherRun.Id,
                 ScenarioId = otherScenarioId,
                 Status = "OPTIMAL",
                 SolvedAt = DateTime.UtcNow,

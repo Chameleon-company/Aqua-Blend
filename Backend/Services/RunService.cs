@@ -10,23 +10,32 @@ namespace AquaBlend.Services;
 public class RunService
 {
     private readonly AquaBlendDbContext _context;
+    private readonly ScenarioValidationService _validationService;
 
-    public RunService(AquaBlendDbContext context)
+    public RunService(
+        AquaBlendDbContext context,
+        ScenarioValidationService validationService)
     {
         _context = context;
+        _validationService = validationService;
     }
 
     public async Task<RunResponseDto?> CreateAsync(int scenarioId)
     {
-        var scenario = await _context.Scenarios
-            .FirstOrDefaultAsync(s => s.Id == scenarioId);
+        // Re-validate rather than trusting the stored IsReady: reference data
+        // (capacities, demand, links) can change after the scenario was last
+        // validated. Stored IsReady is a display cache for scenario listings.
+        var validation = await _validationService.ValidateAsync(scenarioId);
 
-        if (scenario is null)
+        if (!validation.Found)
             return null;
 
-        if (!scenario.IsReady)
-            throw new InvalidOperationException(
+        if (!validation.IsReady)
+            throw new ScenarioNotReadyException(
                 "Scenario must be validated and ready before a run can be created.");
+
+        var scenario = await _context.Scenarios
+            .FirstAsync(s => s.Id == scenarioId);
 
         var run = new OptimisationRun
         {
@@ -115,5 +124,13 @@ public class RunService
             CreatedAt = run.CreatedAt,
             UpdatedAt = run.UpdatedAt
         };
+    }
+}
+
+public sealed class ScenarioNotReadyException : Exception
+{
+    public ScenarioNotReadyException(string message)
+        : base(message)
+    {
     }
 }

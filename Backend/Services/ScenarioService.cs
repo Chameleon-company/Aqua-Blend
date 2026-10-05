@@ -64,7 +64,15 @@ public class ScenarioService
 
         if (dto.NetworkConfig.HasValue)
         {
-            scenario.NetworkConfigJson = dto.NetworkConfig.Value.GetRawText();
+            var networkConfigJson = dto.NetworkConfig.Value.GetRawText();
+
+            // A changed configuration has not been validated, so it must not
+            // keep a readiness verdict earned by the previous configuration.
+            if (networkConfigJson != scenario.NetworkConfigJson)
+            {
+                scenario.NetworkConfigJson = networkConfigJson;
+                scenario.IsReady = false;
+            }
         }
 
         await _context.SaveChangesAsync();

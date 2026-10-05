@@ -113,7 +113,7 @@ namespace AquaBlend.Controllers
                     $"/api/runs/{run.Id}",
                     run);
             }
-            catch (InvalidOperationException ex)
+            catch (ScenarioNotReadyException ex)
             {
                 return Conflict(new
                 {

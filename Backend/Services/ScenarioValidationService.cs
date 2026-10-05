@@ -187,6 +187,9 @@ public class ScenarioValidationService
                 sourceIds,
                 plantIds,
                 zoneIds,
+                sources,
+                plants,
+                zones,
                 issues);
 
             // ---------------------------------------------------------
@@ -210,17 +213,46 @@ public class ScenarioValidationService
     {
         // IsReady is calculated here only.
         // It is never accepted from the client request.
-        scenario.IsReady = issues.Count == 0;
+        var isReady = issues.Count == 0;
 
-        scenario.ValidationIssuesJson =
-            JsonSerializer.Serialize(issues);
+        // Only write when the verdict changed: every write bumps UpdatedAt,
+        // and the frontend validates on each edit, so unconditional saves
+        // would flood the /changes feed with scenarios that did not change.
+        if (scenario.IsReady != isReady ||
+            !StoredIssuesEqual(scenario.ValidationIssuesJson, issues))
+        {
+            scenario.IsReady = isReady;
 
-        await _context.SaveChangesAsync();
+            scenario.ValidationIssuesJson =
+                JsonSerializer.Serialize(issues);
+
+            await _context.SaveChangesAsync();
+        }
 
         return new ScenarioValidationResult(
             true,
-            scenario.IsReady,
+            isReady,
             issues);
+    }
+
+    // Compared as values, not text: Postgres jsonb reorders keys and
+    // reformats whitespace, so the stored string never matches a fresh
+    // JsonSerializer.Serialize even when the issues are identical.
+    private static bool StoredIssuesEqual(
+        string storedJson,
+        List<ScenarioValidationIssue> issues)
+    {
+        try
+        {
+            var stored = JsonSerializer.Deserialize<List<ScenarioValidationIssue>>(storedJson);
+
+            return stored is not null &&
+                   stored.SequenceEqual(issues);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     // ================================================================
@@ -294,6 +326,9 @@ public class ScenarioValidationService
         IReadOnlyCollection<string> sourceIds,
         IReadOnlyCollection<string> plantIds,
         IReadOnlyCollection<string> zoneIds,
+        IReadOnlyCollection<WaterSource> sourceEntities,
+        IReadOnlyCollection<Plant> plantEntities,
+        IReadOnlyCollection<DemandZone> zoneEntities,
         List<ScenarioValidationIssue> issues)
     {
         if (sourceIds.Count == 0 ||
@@ -303,42 +338,8 @@ public class ScenarioValidationService
             return;
         }
 
-        var sourceEntities = await _context.WaterSources
-            .AsNoTracking()
-            .Where(s =>
-                s.ExternalId != null &&
-                sourceIds.Contains(s.ExternalId))
-            .Select(s => new
-            {
-                s.Id,
-                s.ExternalId
-            })
-            .ToListAsync();
-
-        var plantEntities = await _context.Plants
-            .AsNoTracking()
-            .Where(p =>
-                p.ExternalId != null &&
-                plantIds.Contains(p.ExternalId))
-            .Select(p => new
-            {
-                p.Id,
-                p.ExternalId
-            })
-            .ToListAsync();
-
-        var zoneEntities = await _context.DemandZones
-            .AsNoTracking()
-            .Where(z =>
-                z.ExternalId != null &&
-                zoneIds.Contains(z.ExternalId))
-            .Select(z => new
-            {
-                z.Id,
-                z.ExternalId
-            })
-            .ToListAsync();
-
+        // sourceEntities/plantEntities/zoneEntities are the rows ValidateAsync
+        // already loaded for the selected ids - not re-queried here.
         var sourceIdSet =
             sourceEntities
                 .Select(s => s.Id)
