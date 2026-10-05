@@ -112,6 +112,7 @@ Accept: application/json
 ### Get current authenticated user
 GET {{AquaBlend.Api_HostAddress}}/api/auth/me
 Accept: application/json
+Authorization: Bearer {{AquaBlend.Api_Token}}
 ### Reference data — Sprint 3 (Member 4)
 ### All five are GET-only, gated by the CanView policy (any authenticated role).
 
