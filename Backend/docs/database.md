@@ -56,7 +56,12 @@ Schema:
 * `OptimisationResult.RunId` is required and unique (one result per run).
 * `OptimisationResult.ScenarioId` is nullable and kept temporarily for backward compatibility
   with the Sprint 2 endpoints during the transition. It should be removed once those endpoints
-  are fully migrated to look up by RunId instead.
+  are fully migrated to look up by RunId instead. GET /api/optimisation-results/scenario/{id}
+  already filters through the result's run (Run.ScenarioId), not this column, so results posted
+  against a run are found whether or not ScenarioId is set. The run is authoritative everywhere:
+  all three Sprint 2 routes (GET /api/optimisation-results, /{id} and /scenario/{id}) report
+  ScenarioId from the result's run (Run.ScenarioId), never from this column, so filtering and
+  reporting cannot disagree and no route reports 0.
 
 ### WorkflowStatus lifecycle and transitions
 
@@ -182,10 +187,49 @@ The composite index originally specified as `(ScenarioId, SolvedAt DESC)` has be
 belong to runs rather than directly to scenarios. This supports listing a scenario's run history,
 newest first.
 
-Open items:
+IsReady and ValidationIssuesJson are a persisted cache of the last validation, used for display in
+scenario listings. They are written only when the verdict changes (issues are compared as values,
+since jsonb reorders keys and reformats whitespace), so repeated /validate calls do not bump
+UpdatedAt. Editing a scenario's network configuration clears IsReady.
 
-- IsReady/ValidationIssuesJson currently just provide storage. Whether validation state should be
-  persisted (surviving between requests) or computed fresh on every `/validate` call is for whoever
-  builds that endpoint to decide.
+Run creation decides readiness for itself. POST /api/scenarios/{id}/runs ignores the stored
+IsReady and re-validates against current reference data at that moment:
+
+- If the scenario passes, the run is created - even if it was never validated before, or its
+  stored IsReady is false.
+- If it fails, the request is rejected with 409, even if its stored IsReady is true (for example
+  because a plant's capacity was reduced after the scenario was last validated).
+
+Either way the stored IsReady and ValidationIssuesJson are refreshed by that validation.
+
+Known limitation: QualityProfile.ConstraintMin and ConstraintMax are non-nullable decimals, so an
+unset profile is stored as 0/0 and passes validation (0 ≤ 0). Rejecting it would mean making both
+columns nullable and requiring at least one, which needs a migration; deferred.
+
+Open items:
 - QualityProfile is modelled as a standalone named limit, not linked to a specific Plant (see the
   Sprint 3 reference-data note above) — still pending confirmation.
+
+## WaterSource.Type — source_type vocabulary (Sprint 3, resolved)
+
+WaterSource.Type is a free-text column with no database check constraint, same treatment as
+OptimisationRun.WorkflowStatus and SolverStatus above: the allowed values are documented here,
+not enforced at the schema level, so the contract can grow without a migration each time.
+
+Agreed values (lowercase, mirroring the MILP model output contract's source_type exactly):
+
+* reservoir
+* river
+* groundwater
+
+"Surface" was never a fourth value — it's the taxonomy category one level up that contains both
+reservoir and river, so it was never a sibling of groundwater. The two seeded rows are now
+reservoir ("Reservoir A") and groundwater ("Bore Well 1"); no fourth type is needed.
+
+If a genuine new source type comes up (e.g. desalination, recycled water), it goes into the MILP
+contract first and reaches this project from there — this project mirrors the contract's vocabulary,
+it does not extend it independently.
+
+Existing rows are normalised by the NormaliseWaterSourceTypes migration, which Program.cs applies
+on startup (Surface → reservoir, any casing of reservoir/river/groundwater → lowercase). No manual
+step is needed.

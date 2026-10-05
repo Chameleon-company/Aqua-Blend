@@ -60,8 +60,11 @@ builder.Services.AddControllers();
 // Application services.
 builder.Services.AddScoped<OptimisationResultService>();
 builder.Services.AddScoped<ScenarioService>();
-builder.Services.AddScoped<WaterSourceService>();
+builder.Services.AddScoped<ScenarioValidationService>();
+builder.Services.AddScoped<RunService>();
 builder.Services.AddScoped<RunStatusService>();
+builder.Services.AddScoped<WaterSourceService>();
+builder.Services.AddScoped<ReferenceDataService>();
 
 const string AquaBlendFrontendPolicy = "AquaBlendFrontend";
 
@@ -100,7 +103,12 @@ builder.Services.AddDbContext<AquaBlendDbContext>(options =>
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer();
+    .AddJwtBearer(options =>
+    {
+        builder.Configuration
+            .GetSection("Authentication:Schemes:Bearer")
+            .Bind(options);
+    });
 
 builder.Services.AddAuthorization(options =>
 {
