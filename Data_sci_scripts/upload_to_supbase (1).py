@@ -74,6 +74,37 @@ if missing_columns:
     exit()
 
 
+# Check for missing values in required columns
+
+missing_values = df[required_columns].isnull().sum()
+missing_values = missing_values[missing_values > 0]
+
+if not missing_values.empty:
+    print("--------------------------------")
+    print("Missing Values Detected")
+    print(missing_values)
+    print("--------------------------------")
+else:
+    print("No missing values found in required columns.")
+
+
+# Check for duplicate rows
+
+duplicate_rows = df.duplicated().sum()
+
+if duplicate_rows > 0:
+    print("--------------------------------")
+    print(f"Duplicate rows detected: {duplicate_rows}")
+
+    df = df.drop_duplicates()
+
+    print(f"Duplicate rows removed.")
+    print(f"Rows remaining: {len(df)}")
+    print("--------------------------------")
+else:
+    print("No duplicate rows found.")
+
+
 # Keep only required columns
 
 df = df[required_columns]
