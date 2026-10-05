@@ -70,7 +70,8 @@ Optimisation Results are returned as lightweight summaries.
 The polling response includes:
 
 - `id`
-- `scenarioId`
+- `scenarioId` (from the result's run)
+- `runId`
 - `status`
 - `solvedAt`
 - `receivedAt`
@@ -104,6 +105,7 @@ The full `resultJson` is not returned by the changes endpoint. The purpose of th
     {
       "id": 7,
       "scenarioId": 3,
+      "runId": 11,
       "status": "OPTIMAL",
       "solvedAt": "2026-09-20T03:00:20Z",
       "receivedAt": "2026-09-20T03:00:22Z",
@@ -191,20 +193,18 @@ The frontend can therefore update the displayed run status without requesting co
 The primary Optimisation Run workflow is:
 
 ```text
-draft → ready → queued → solving → solved → analysing → completed
+queued → solving → solved → analysing → completed
 ```
 
-The workflow is not strictly one-directional. It also supports controlled backward, retry, and failure transitions.
+A run is created at `queued` by `POST /api/scenarios/{id}/runs`, after the scenario passes re-validation. There is no `draft` or `ready` run state: readiness belongs to the scenario (`Scenario.IsReady`), not the run.
+
+The workflow is not strictly one-directional. It also supports controlled retry and failure transitions.
 
 Allowed transitions are:
 
-- `draft` → `ready` — backend, when validation passes.
-- `ready` → `draft` — backend, when the scenario is edited again.
-- `ready` → `queued` — client submits the run.
-- `queued` → `ready` — client withdraws the run before pickup.
 - `queued` → `solving` — AI team picks up the run.
-- `solving` → `solved` — result is received.
-- `solving` → `queued` — retry after a stalled solve.
+- `solving` → `solved` — AI team, result is received.
+- `solving` → `queued` — AI team, retry after a stalled solve.
 - `solved` → `analysing` — backend derives diagnostics.
 - `analysing` → `completed` — backend completes post-processing.
 - `queued` → `failed` — AI team, or backend when a timeout is detected.
@@ -212,16 +212,14 @@ Allowed transitions are:
 - `solved` → `failed` — backend only.
 - `analysing` → `failed` — backend only.
 
-A client must never transition a run to `failed`. If a client abandons a run before the AI team picks it up, the transition is:
+A client must never transition a run to `failed`.
 
-```text
-queued → ready
-```
+Withdrawing a run before pickup is not implemented: no endpoint changes a run's status yet, and no transition is client-owned. When withdrawal is built it will need its own terminal state (e.g. `cancelled`, client-owned, from `queued`), not a return to a pre-queued state.
 
 No other state skips are permitted. For example:
 
 ```text
-ready → solving
+queued → solved
 solved → completed
 ```
 
@@ -244,9 +242,11 @@ is accepted without changing the state. This allows callers to safely retry a re
 A workflow failure should store:
 
 - `FailureReason` — describes why the workflow failed.
-- `FailureSource` — identifies which component declared the failure.
+- `FailureSource` — identifies which actor declared the failure: exactly `ai_team` or `backend` (the lowercase form of the `RunStatusActor` allowed to fail a run; a client never can, so `client` is not a value). Do not introduce other spellings.
 
 `FailureSource` is important because failure ownership determines how the failure should be routed and investigated.
+
+Both fields are currently inert: nothing writes them yet, and no response (including `/api/changes`) exposes them. The status-update / result-ingest route should populate them from the authenticated actor.
 
 The backend timeout sweeper has not yet been implemented. Until the timeout sweeper exists, a run can remain in `solving` indefinitely if the solver process stops without reporting a failure.
 
@@ -256,8 +256,7 @@ A valid state change depends on both the current/target states and the actor req
 
 The ownership rules include:
 
-- The client may submit `ready → queued`.
-- The client may withdraw `queued → ready`.
+- The client submits a run by creating it (`POST /api/scenarios/{id}/runs`), not by a status transition; it owns no transitions today.
 - The client must never transition a run to `failed`.
 - The AI team owns `queued → solving`.
 - The AI team may declare `queued → failed` or `solving → failed`.
@@ -285,8 +284,6 @@ When a transition is rejected, the stored `WorkflowStatus` must remain unchanged
 
 Its allowed values are:
 
-- `draft`
-- `ready`
 - `queued`
 - `solving`
 - `solved`

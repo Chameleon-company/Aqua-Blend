@@ -7,10 +7,6 @@ public sealed class RunStatusServiceTests
     private readonly RunStatusService _service = new();
 
     [Theory]
-    [InlineData("draft", "ready", RunStatusActor.Backend)]
-    [InlineData("ready", "draft", RunStatusActor.Backend)]
-    [InlineData("ready", "queued", RunStatusActor.Client)]
-    [InlineData("queued", "ready", RunStatusActor.Client)]
     [InlineData("queued", "solving", RunStatusActor.AiTeam)]
     [InlineData("solving", "queued", RunStatusActor.AiTeam)]
     [InlineData("solving", "solved", RunStatusActor.AiTeam)]
@@ -26,9 +22,9 @@ public sealed class RunStatusServiceTests
     }
 
     [Theory]
-    [InlineData("ready", "solving", RunStatusActor.Client)]
+    [InlineData("queued", "analysing", RunStatusActor.Backend)]
     [InlineData("solved", "completed", RunStatusActor.Backend)]
-    [InlineData("draft", "queued", RunStatusActor.Client)]
+    [InlineData("solving", "completed", RunStatusActor.Backend)]
     [InlineData("queued", "solved", RunStatusActor.AiTeam)]
     public void IsValidTransition_SkippedState_ReturnsFalse(
         string currentStatus,
@@ -43,7 +39,7 @@ public sealed class RunStatusServiceTests
     [InlineData("queued", "solving", RunStatusActor.Client)]
     [InlineData("solving", "solved", RunStatusActor.Client)]
     [InlineData("analysing", "completed", RunStatusActor.Client)]
-    [InlineData("ready", "queued", RunStatusActor.Backend)]
+    [InlineData("solved", "analysing", RunStatusActor.AiTeam)]
     public void IsValidTransition_WrongActor_ReturnsFalse(
         string currentStatus,
         string nextStatus,
@@ -72,8 +68,6 @@ public sealed class RunStatusServiceTests
     }
 
     [Theory]
-    [InlineData("draft")]
-    [InlineData("ready")]
     [InlineData("queued")]
     [InlineData("solving")]
     [InlineData("solved")]
@@ -102,8 +96,6 @@ public sealed class RunStatusServiceTests
     }
 
     [Theory]
-    [InlineData("draft", RunStatusActor.Client)]
-    [InlineData("ready", RunStatusActor.Backend)]
     [InlineData("queued", RunStatusActor.AiTeam)]
     [InlineData("solving", RunStatusActor.AiTeam)]
     [InlineData("solved", RunStatusActor.Backend)]
@@ -122,8 +114,8 @@ public sealed class RunStatusServiceTests
     }
 
     [Theory]
-    [InlineData("completed", "draft")]
-    [InlineData("completed", "ready")]
+    [InlineData("completed", "queued")]
+    [InlineData("completed", "analysing")]
     [InlineData("failed", "queued")]
     [InlineData("failed", "solving")]
     public void IsValidTransition_FromTerminalState_ReturnsFalse(
@@ -144,6 +136,47 @@ public sealed class RunStatusServiceTests
 
         Assert.Contains("failed", statuses);
         Assert.Contains("completed", statuses);
-        Assert.Equal(8, statuses.Count);
+        Assert.Equal(6, statuses.Count);
+    }
+
+    [Theory]
+    [InlineData("draft")]
+    [InlineData("ready")]
+    public void ScenarioReadinessStates_AreNotRunStatuses(string status)
+    {
+        // Readiness belongs to the scenario; a run starts at queued.
+        Assert.DoesNotContain(status, _service.GetWorkflowStatuses());
+        Assert.False(_service.IsValidTransition(status, "queued", RunStatusActor.Backend));
+        Assert.False(_service.IsValidTransition("queued", status, RunStatusActor.Backend));
+    }
+
+    [Fact]
+    public void EveryStatus_IsReachableFromQueued()
+    {
+        // queued is where RunService creates every run, so a status that
+        // cannot be reached from it is dead vocabulary.
+        var statuses = _service.GetWorkflowStatuses();
+        var reached = new HashSet<string> { "queued" };
+        var frontier = new Queue<string>(reached);
+
+        while (frontier.Count > 0)
+        {
+            var from = frontier.Dequeue();
+
+            foreach (var to in statuses)
+            {
+                if (reached.Contains(to))
+                    continue;
+
+                if (Enum.GetValues<RunStatusActor>().Any(actor =>
+                        _service.IsValidTransition(from, to, actor)))
+                {
+                    reached.Add(to);
+                    frontier.Enqueue(to);
+                }
+            }
+        }
+
+        Assert.Equal(statuses.OrderBy(s => s), reached.OrderBy(s => s));
     }
 }

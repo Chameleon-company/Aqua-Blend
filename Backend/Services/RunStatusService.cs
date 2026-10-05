@@ -9,35 +9,28 @@ public enum RunStatusActor
 
 public sealed class RunStatusService
 {
-    private static readonly HashSet<string> WorkflowStatuses =
-        new(StringComparer.OrdinalIgnoreCase)
+    // The single source of the workflow vocabulary, in lifecycle order.
+    // Adding a status means adding it here (plus any transitions it takes part in).
+    // A run starts at queued: readiness belongs to the scenario (Scenario.IsReady
+    // and re-validation at run creation), so there is no draft or ready run state.
+    private static readonly IReadOnlyList<string> WorkflowStatusList =
+        Array.AsReadOnly(new[]
         {
-            "draft",
-            "ready",
             "queued",
             "solving",
             "solved",
             "analysing",
             "completed",
             "failed"
-        };
+        });
+
+    private static readonly HashSet<string> WorkflowStatuses =
+        new(WorkflowStatusList, StringComparer.OrdinalIgnoreCase);
 
     private static readonly Dictionary<
         (string From, string To),
         HashSet<RunStatusActor>> AllowedTransitions = new()
         {
-            [("draft", "ready")] =
-                new() { RunStatusActor.Backend },
-
-            [("ready", "draft")] =
-                new() { RunStatusActor.Backend },
-
-            [("ready", "queued")] =
-                new() { RunStatusActor.Client },
-
-            [("queued", "ready")] =
-                new() { RunStatusActor.Client },
-
             [("queued", "solving")] =
                 new() { RunStatusActor.AiTeam },
 
@@ -119,16 +112,6 @@ public sealed class RunStatusService
 
     public IReadOnlyList<string> GetWorkflowStatuses()
     {
-        return new[]
-        {
-            "draft",
-            "ready",
-            "queued",
-            "solving",
-            "solved",
-            "analysing",
-            "completed",
-            "failed"
-        };
+        return WorkflowStatusList;
     }
 }

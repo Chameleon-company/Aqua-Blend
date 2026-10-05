@@ -111,6 +111,7 @@ public sealed class ChangesController : ControllerBase
                 // Every result belongs to an OptimisationRun,
                 // whose ScenarioId is required.
                 ScenarioId = r.Run.ScenarioId,
+                RunId = r.RunId,
 
                 Status = r.Status,
                 SolvedAt = r.SolvedAt,

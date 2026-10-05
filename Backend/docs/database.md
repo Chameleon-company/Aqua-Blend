@@ -44,10 +44,20 @@ created via `POST /api/scenarios/{id}/runs`, and results are posted against that
 
 Schema:
 
-* OptimisationRun: ScenarioId, WorkflowStatus, SolverStatus, ScenarioSnapshotJson, and automatic
-  CreatedAt/UpdatedAt timestamps.
+* OptimisationRun: ScenarioId, WorkflowStatus, SolverStatus, FailureReason, FailureSource,
+  ScenarioSnapshotJson, and automatic CreatedAt/UpdatedAt timestamps.
 * WorkflowStatus allowed values are:
-  `draft`, `ready`, `queued`, `solving`, `solved`, `analysing`, `completed`, `failed`.
+  `queued`, `solving`, `solved`, `analysing`, `completed`, `failed`.
+  There is no `draft` or `ready` run state: readiness belongs to the scenario (Scenario.IsReady,
+  and re-validation at run creation - see "Scenario network configuration and validation"
+  below). A run is created only when submitted, and starts at `queued`.
+* FailureReason (free text) and FailureSource are populated when WorkflowStatus becomes `failed`.
+  FailureSource records which actor declared the failure, and its only values are `ai_team` and
+  `backend` - the lowercase form of the RunStatusActor allowed to fail a run. A client never
+  declares failure, so `client` is not a valid value. Use exactly these spellings; do not
+  introduce others. Both fields are currently inert: nothing writes them yet, and no response
+  exposes them. Whoever builds the status-update / result-ingest route should populate them
+  from the authenticated actor.
 * SolverStatus is nullable until a solver outcome exists. Its allowed values mirror the MILP
   contract exactly:
   `OPTIMAL`, `INFEASIBLE`, `UNBOUNDED`, `TIME_LIMIT`, `ERROR`.
@@ -65,34 +75,40 @@ Schema:
 
 ### WorkflowStatus lifecycle and transitions
 
-The primary workflow path is:
+A run is created at `queued` by `POST /api/scenarios/{id}/runs`, after the scenario passes
+re-validation. The primary workflow path is:
 
 ```text
-draft → ready → queued → solving → solved → analysing → completed
+queued → solving → solved → analysing → completed
 ```
 
-The workflow is not strictly one-directional. The following transitions are allowed:
+The workflow is not strictly one-directional. The following transitions are allowed, and every
+status is reachable from `queued`:
 
 | From | To | Actor / owner |
 | --- | --- | --- |
-| `draft` | `ready` | Backend, when validation passes |
-| `ready` | `draft` | Backend, when the scenario is edited again |
-| `ready` | `queued` | Client submits the run |
-| `queued` | `ready` | Client withdraws before pickup |
 | `queued` | `solving` | AI team picks up the run |
-| `solving` | `solved` | Result received |
-| `solving` | `queued` | Retry after a stalled solve |
+| `solving` | `queued` | AI team, retry after a stalled solve |
+| `solving` | `solved` | AI team, result received |
 | `solved` | `analysing` | Backend derives diagnostics |
 | `analysing` | `completed` | Backend |
-| `queued` | `failed` | Workflow/process failure |
-| `solving` | `failed` | Workflow/process failure |
-| `solved` | `failed` | Workflow/process failure |
-| `analysing` | `failed` | Workflow/process failure |
+| `queued` | `failed` | AI team, or backend (e.g. timeout) |
+| `solving` | `failed` | AI team, or backend (e.g. timeout) |
+| `solved` | `failed` | Backend |
+| `analysing` | `failed` | Backend |
 
-No other state skips are permitted. For example, `ready → solving` and
+No other state skips are permitted. For example, `queued → solved` and
 `solved → completed` are invalid because they bypass work owned by another stage of the workflow.
 
 `completed` and `failed` are terminal states and cannot transition to another workflow state.
+
+Withdrawing a run before pickup is not implemented: no endpoint changes a run's status yet, and
+there is no client-owned transition. When withdrawal is built it will need its own terminal state
+(e.g. `cancelled`, client-owned, from `queued`) - not a return to a pre-queued state, which no
+longer exists.
+
+These rules live in RunStatusService.IsValidTransition. Nothing calls it yet, so they are not
+enforced anywhere until a status-update route is built on top of it.
 
 A transition to the same state is treated as a successful no-op. This makes status updates
 idempotent and allows callers such as the AI integration to safely retry a request after a
