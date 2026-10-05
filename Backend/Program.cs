@@ -57,6 +57,8 @@ builder.Services.AddOpenApi(options =>
 builder.Services.AddControllers();
 builder.Services.AddScoped<OptimisationResultService>();
 builder.Services.AddScoped<AquaBlend.Services.ScenarioService>();
+builder.Services.AddScoped<AquaBlend.Services.ScenarioValidationService>();
+builder.Services.AddScoped<RunService>();
 builder.Services.AddScoped<AquaBlend.Services.WaterSourceService>();
 builder.Services.AddScoped<AquaBlend.Services.ReferenceDataService>();
 
@@ -95,7 +97,12 @@ builder.Services.AddDbContext<AquaBlendDbContext>(options =>
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer();
+    .AddJwtBearer(options =>
+    {
+        builder.Configuration
+            .GetSection("Authentication:Schemes:Bearer")
+            .Bind(options);
+    });
 
 builder.Services.AddAuthorization(options =>
 {
