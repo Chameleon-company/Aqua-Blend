@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>0a835cfb-d32b-4a3b-95d0-1269332eb915</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.18">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.18" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="AquaBlend.Tests/**/*.cs" />
+    <!-- The Tests project lives in a subfolder of this one; without this, its own bin/obj
+         output gets swept up by this project's default Content/None globs and re-copied into
+         itself on every build, nesting bin/Debug/net9.0/AquaBlend.Tests/bin/Debug/... one level
+         deeper each time until a build eventually fails trying to copy a path that no longer
+         exists. Pre-existing structural issue, not introduced by this change. -->
+    <Content Remove="AquaBlend.Tests/bin/**" />
+    <Content Remove="AquaBlend.Tests/obj/**" />
+    <None Remove="AquaBlend.Tests/bin/**" />
+    <None Remove="AquaBlend.Tests/obj/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="Data\SeedData\sample_optimisation_result.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

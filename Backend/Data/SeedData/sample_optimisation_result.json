@@ -1,0 +1,211 @@
+{
+  "run_id": "RUN-1001",
+  "scenario_id": "scenario_2026_07_17_001",
+  "scenario_name": "Drought Scenario",
+  "solver_status": "optimal",
+  "objective_value": 184150.00,
+  "solve_time_ms": 1180,
+  "sources": {
+    "selected": [
+      {
+        "source_id": "silvan_reservoir",
+        "source_name": "Silvan Reservoir",
+        "is_selected": true,
+        "withdrawal_ml_per_day": 210,
+        "blend_ratio": 0.42,
+        "fixed_cost_contribution": 0,
+        "withdrawal_cost_contribution": 84000.00,
+        "min_withdrawal_ml_per_day": 0,
+        "max_withdrawal_ml_per_day": 250,
+        "utilisation_percent": 84.0,
+        "cost_rank": 2,
+        "binding_capacity": false,
+        "availability_status": "available",
+        "model_ready": true,
+        "is_estimated": true,
+        "provenance": "estimate"
+      },
+      {
+        "source_id": "yarra_kew",
+        "source_name": "Yarra River, Kew",
+        "is_selected": true,
+        "withdrawal_ml_per_day": 290,
+        "blend_ratio": 0.58,
+        "fixed_cost_contribution": 0,
+        "withdrawal_cost_contribution": 68150.00,
+        "min_withdrawal_ml_per_day": 0,
+        "max_withdrawal_ml_per_day": 290,
+        "utilisation_percent": 100.0,
+        "cost_rank": 1,
+        "binding_capacity": true,
+        "availability_status": "available",
+        "model_ready": true,
+        "is_estimated": true,
+        "provenance": "estimate"
+      }
+    ],
+    "unused": [
+      {
+        "source_id": "groundwater_bore_1",
+        "source_name": "Groundwater Bore 1",
+        "is_selected": false,
+        "withdrawal_ml_per_day": 0,
+        "blend_ratio": 0,
+        "fixed_cost_contribution": 0,
+        "withdrawal_cost_contribution": 0,
+        "min_withdrawal_ml_per_day": 0,
+        "max_withdrawal_ml_per_day": 80,
+        "utilisation_percent": 0,
+        "cost_rank": 3,
+        "binding_capacity": false,
+        "availability_status": "available",
+        "model_ready": true,
+        "is_estimated": true,
+        "provenance": "estimate",
+        "reason_code": "higher_cost_no_quality_benefit",
+        "reason": "Higher cost per ML than the selected sources with no quality benefit large enough to justify inclusion for this demand level"
+      }
+    ]
+  },
+  "network": {
+    "plants": [
+      {
+        "plant_id": "facility_1",
+        "plant_name": "Treatment Facility 1",
+        "is_active": true,
+        "throughput_ml_per_day": 500,
+        "fixed_cost_contribution": 0,
+        "treatment_cost_contribution": 32000.00,
+        "min_throughput_ml_per_day": 0,
+        "max_throughput_ml_per_day": 600,
+        "utilisation_percent": 83.33
+      }
+    ],
+    "demand_zones": [
+      {
+        "zone_id": "zone_1",
+        "zone_name": "Zone 1",
+        "demand_ml_per_day": 500,
+        "delivered_ml_per_day": 500,
+        "unmet_demand_ml_per_day": 0,
+        "surplus_ml_per_day": 0,
+        "demand_satisfied": true,
+        "demand_must_be_met": true
+      }
+    ],
+    "source_to_plant_flows": [
+      {
+        "source_id": "silvan_reservoir",
+        "plant_id": "facility_1",
+        "is_active": true,
+        "flow_ml_per_day": 210,
+        "max_flow_ml_per_day": 350,
+        "utilisation_percent": 60.0,
+        "binding_capacity": false
+      },
+      {
+        "source_id": "yarra_kew",
+        "plant_id": "facility_1",
+        "is_active": true,
+        "flow_ml_per_day": 290,
+        "max_flow_ml_per_day": 300,
+        "utilisation_percent": 96.7,
+        "binding_capacity": false
+      },
+      {
+        "source_id": "groundwater_bore_1",
+        "plant_id": "facility_1",
+        "is_active": false,
+        "flow_ml_per_day": 0,
+        "max_flow_ml_per_day": 0,
+        "utilisation_percent": 0,
+        "binding_capacity": false
+      }
+    ],
+    "plant_to_zone_flows": [
+      {
+        "plant_id": "facility_1",
+        "zone_id": "zone_1",
+        "is_active": true,
+        "flow_ml_per_day": 500,
+        "max_flow_ml_per_day": 600,
+        "utilisation_percent": 83.33
+      }
+    ]
+  },
+  "blended_quality": {
+    "results": [
+      {
+        "plant_id": "facility_1",
+        "parameter_id": "pH",
+        "unit": "pH",
+        "blended_value": 7.11,
+        "lower_limit": 6.5,
+        "upper_limit": 8.5,
+        "lower_margin": 0.61,
+        "upper_margin": 1.39,
+        "is_binding": false
+      },
+      {
+        "plant_id": "facility_1",
+        "parameter_id": "alkalinity",
+        "unit": "mg/L CaCO3",
+        "blended_value": 38.04,
+        "lower_limit": 20,
+        "upper_limit": 100,
+        "lower_margin": 18.04,
+        "upper_margin": 61.96,
+        "is_binding": false
+      },
+      {
+        "plant_id": "facility_1",
+        "parameter_id": "turbidity",
+        "unit": "NTU",
+        "blended_value": 5.28,
+        "lower_limit": 0,
+        "upper_limit": 8.0,
+        "lower_margin": 5.28,
+        "upper_margin": 2.72,
+        "is_binding": false
+      }
+    ]
+  },
+  "cost_breakdown": {
+    "total_source_fixed_cost": 0,
+    "total_source_withdrawal_cost": 152150.00,
+    "total_plant_fixed_cost": 0,
+    "total_plant_treatment_cost": 32000.00,
+    "reconstructed_total_cost": 184150.00,
+    "solver_objective_value": 184150.00,
+    "cost_reconciles": true
+  },
+  "decision_evidence": {
+    "binding_quality_limits": [],
+    "sources_at_max_withdrawal": ["yarra_kew"],
+    "sources_at_min_withdrawal": [],
+    "plants_at_max_throughput": [],
+    "links_at_max_flow": [],
+    "utilisation_percent": 83.33,
+    "cost_rank": 1,
+    "feasibility_state": "feasible",
+    "binding_constraint_labels": ["demand_satisfaction_zone_1", "source_capacity_yarra_kew"]
+  },
+  "warnings": [
+    {
+      "message": "Cost and availability figures for all three sources are estimated, not measured.",
+      "code": "ESTIMATED_SOURCE_VALUES",
+      "severity": "info"
+    },
+    {
+      "message": "Yarra River (Kew) capacity is the binding constraint on this scenario; lower real-world availability could make it infeasible.",
+      "code": "BINDING_SOURCE_CAPACITY",
+      "severity": "warning"
+    }
+  ],
+  "notes": [
+    "source_activation_cost is structurally 0.00: the formulation charges a per-activated-source fixed cost, but the loader has no input path for it, so the term evaluates to zero rather than being omitted.",
+    "plant_activation_cost is 0.00 because this scenario holds Facility 1 active with its fixed cost set to 0 in the input contract.",
+    "Plant costs, plant capacity, link capacities and quality limits are defined in the scenario file and carry no provenance mechanism, unlike source fields which come from the database view.",
+    "Quality limits are raw-blend limits applied at plant inflow, not post-treatment regulatory limits."
+  ]
+}
