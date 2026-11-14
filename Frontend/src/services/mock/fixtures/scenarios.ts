@@ -1,0 +1,120 @@
+import type { ScenarioDetail } from "@/types/scenario";
+
+const now = "2026-08-20T09:00:00Z";
+
+export const scenarioDetailFixtures: Record<string, ScenarioDetail> = {
+  "SCN-001": {
+    scenarioId: "SCN-001",
+    scenarioName: "Tomorrow's Supply (Zone 1 Priority)",
+    description: "Standard next-day supply plan with Zone 1 prioritised.",
+    status: "ready",
+    validationIssues: [],
+    createdAt: now,
+    updatedAt: "2026-08-22T21:10:00Z",
+    sources: [
+      { sourceId: "SRC-BORE-01", enabled: true },
+      { sourceId: "SRC-RES-02", enabled: true },
+      { sourceId: "SRC-RIV-03", enabled: true },
+      { sourceId: "SRC-DES-04", enabled: true },
+      { sourceId: "SRC-REC-05", enabled: true },
+      { sourceId: "SRC-EMG-06", enabled: false, forcedInactive: true },
+    ],
+    plants: [
+      { plantId: "PLANT-A", enabled: true },
+      { plantId: "PLANT-B", enabled: true },
+    ],
+    demandZones: [
+      { zoneId: "ZONE-1", demandMlPerDay: 40 },
+      { zoneId: "ZONE-2", demandMlPerDay: 40 },
+      { zoneId: "ZONE-3", demandMlPerDay: 48 },
+    ],
+    qualityProfileId: "QP-STANDARD",
+    networkOverrides: [],
+  },
+  "SCN-002": {
+    scenarioId: "SCN-002",
+    scenarioName: "Weekly Baseline",
+    description: "Rolling 7-day baseline supply and blend plan.",
+    status: "ready",
+    validationIssues: [],
+    createdAt: now,
+    updatedAt: "2026-08-22T20:35:00Z",
+    sources: [
+      { sourceId: "SRC-BORE-01", enabled: true },
+      { sourceId: "SRC-RES-02", enabled: true },
+      { sourceId: "SRC-RIV-03", enabled: true },
+      { sourceId: "SRC-DES-04", enabled: true },
+      { sourceId: "SRC-REC-05", enabled: false },
+      { sourceId: "SRC-EMG-06", enabled: false, forcedInactive: true },
+    ],
+    plants: [
+      { plantId: "PLANT-A", enabled: true },
+      { plantId: "PLANT-B", enabled: true },
+    ],
+    demandZones: [
+      { zoneId: "ZONE-1", demandMlPerDay: 40 },
+      { zoneId: "ZONE-2", demandMlPerDay: 40 },
+      { zoneId: "ZONE-3", demandMlPerDay: 44 },
+    ],
+    qualityProfileId: "QP-STANDARD",
+    networkOverrides: [],
+  },
+  "SCN-003": {
+    scenarioId: "SCN-003",
+    scenarioName: "Drought Contingency",
+    description: "Stress-tests supply against reduced source availability.",
+    status: "ready",
+    validationIssues: [],
+    createdAt: now,
+    updatedAt: "2026-08-22T21:58:00Z",
+    sources: [
+      { sourceId: "SRC-BORE-01", enabled: true, maxWithdrawalOverrideMlPerDay: 25 },
+      { sourceId: "SRC-RES-02", enabled: true, maxWithdrawalOverrideMlPerDay: 35 },
+      { sourceId: "SRC-RIV-03", enabled: true, maxWithdrawalOverrideMlPerDay: 20 },
+      { sourceId: "SRC-DES-04", enabled: true },
+      { sourceId: "SRC-REC-05", enabled: false },
+      { sourceId: "SRC-EMG-06", enabled: false, forcedInactive: true },
+    ],
+    plants: [
+      { plantId: "PLANT-A", enabled: true },
+      { plantId: "PLANT-B", enabled: true },
+    ],
+    demandZones: [
+      { zoneId: "ZONE-1", demandMlPerDay: 50 },
+      { zoneId: "ZONE-2", demandMlPerDay: 45 },
+      { zoneId: "ZONE-3", demandMlPerDay: 50 },
+    ],
+    qualityProfileId: "QP-STANDARD",
+    networkOverrides: [],
+  },
+  "SCN-004": {
+    scenarioId: "SCN-004",
+    scenarioName: "Zone 4 Expansion (Draft)",
+    description: "Exploring a new demand zone before its network links are finalised.",
+    status: "draft",
+    validationIssues: [
+      { message: "Demand for Zone 3 has not been entered.", field: "demandZones", severity: "error" },
+    ],
+    createdAt: "2026-08-23T08:00:00Z",
+    updatedAt: "2026-08-23T08:00:00Z",
+    sources: [
+      { sourceId: "SRC-BORE-01", enabled: true },
+      { sourceId: "SRC-RES-02", enabled: true },
+      { sourceId: "SRC-RIV-03", enabled: false },
+      { sourceId: "SRC-DES-04", enabled: false },
+      { sourceId: "SRC-REC-05", enabled: false },
+      { sourceId: "SRC-EMG-06", enabled: false },
+    ],
+    plants: [
+      { plantId: "PLANT-A", enabled: true },
+      { plantId: "PLANT-B", enabled: false },
+    ],
+    demandZones: [
+      { zoneId: "ZONE-1", demandMlPerDay: 40 },
+      { zoneId: "ZONE-2", demandMlPerDay: 40 },
+      { zoneId: "ZONE-3", demandMlPerDay: null },
+    ],
+    qualityProfileId: null,
+    networkOverrides: [],
+  },
+};
