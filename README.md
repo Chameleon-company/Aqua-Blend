@@ -1,4 +1,3 @@
-
 # AquaBlend
 
 AquaBlend is a mathematical optimisation framework that helps drinking-water providers select, blend, and treat water from multiple sources across Victoria. The project uses Mixed Integer Linear Programming (MILP) to recommend cost-effective source blending and treatment strategies while maintaining drinking-water safety, regulatory compliance, and operational feasibility.
@@ -7,7 +6,7 @@ This is a SIT Capstone project (Product Owner: Dr Atabak Elmi), currently in its
 
 ## Project Overview
 
-Different Victorian water sources, reservoirs, rivers, and groundwater, have different mineral and quality profiles. AquaBlend explores whether intelligently selecting and blending these sources before or during treatment can reduce the amount of added chemicals and treatment required, lowering operating costs while keeping water safe and compliant.
+Victorian water sources, reservoirs, rivers, and groundwater, have different mineral and quality profiles. AquaBlend explores whether intelligently selecting and blending these sources before or during treatment can reduce the amount of added chemicals and treatment required, lowering operating costs while keeping water safe and compliant.
 
 The project starts with a public-data proof-of-concept (Scope 1) and is designed to evolve toward an operational model using real water corporation data in future trimesters.
 
@@ -15,14 +14,15 @@ The project starts with a public-data proof-of-concept (Scope 1) and is designed
 
 The project is organised into four teams, each owning a distinct part of the pipeline:
 
-| Team | Folder | Responsible For |
-|---|---|---|
-| Optimisation (MILP) | `MILP/` | The mathematical formulation and optimisation model. Takes in water source data, demand, and quality constraints, and outputs a recommended blend, cost breakdown, and constraint status. This is the core decision engine the rest of the project builds around |
-| Data Engineering | `Data_sci_scripts/` | Sourcing, cleaning, and documenting the real datasets the model runs on (reservoir, river, and groundwater data, water quality readings, etc.), and maintaining a clear record of what's been collected and what's still outstanding |
-| AI and Analysis | `AI/` | Demand forecasting, anomaly detection, and any applied AI/LLM features (e.g. natural-language summaries or a Q&A layer over model results) |
-| App & Delivery | `Frontend/` and `Backend/` | The dashboard and product interface. Consumes the MILP model's output and presents it to users through a working web application, frontend UI plus backend routes/services/database |
+| Team                | Folder                     | Responsible For                                                                                                                                                                                                                                                  |
+| ------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Optimisation (MILP) | `MILP/`                    | The mathematical formulation and optimisation model. Takes in water source data, demand, and quality constraints, and outputs a recommended blend, cost breakdown, and constraint status. This is the core decision engine the rest of the project builds around |
+| Data Engineering    | `Data_sci_scripts/`        | Sourcing, cleaning, and documenting the real datasets the model runs on (reservoir, river, and groundwater data, water quality readings, etc.), and maintaining a clear record of what's been collected and what's still outstanding                             |
+| AI and Analysis     | `AI/`                      | Demand forecasting, anomaly detection, and any applied AI/LLM features (e.g. natural-language summaries or a Q&A layer over model results)                                                                                                                       |
+| App & Delivery      | `Frontend/` and `Backend/` | The dashboard and product interface. Consumes the MILP model's output and presents it to users through a working web application, frontend UI plus backend routes/services/database                                                                              |
 
-Data flows roughly like this: **Data Engineering** collects and cleans source data → **AI and Analysis** adds forecasts/insights on top → **MILP** uses both to compute the optimal blend → **App & Delivery** presents the final result to the user.
+Data Engineering prepares the source data used by the MILP model. The MILP pipeline processes scenario inputs, runs the optimisation and stores the results, which are then made available through the application. AI and Analysis will provide additional capabilities such as result interpretation and forecasting.
+
 ## Repository Structure
 
 ```
@@ -32,25 +32,33 @@ Aqua-Blend/
 ├── Data_sci_scripts/      # Data cleaning scripts and dataset documentation
 ├── Frontend/              # Dashboard frontend source
 ├── Backend/               # Dashboard backend: routes, services, controllers, ORM
-└── readme.md              # This file
+└── README.md              # This file
 ```
 
-**Please only make changes inside the folder your team owns.** If something needs to change in another team's folder, raise it with that team directly rather than editing it yourself.
+## System Overview
 
-## Workflow
+The intended end-to-end workflow consists of:
 
-We are using GitHub as the single source of truth for all code and documentation, including the MILP formulation doc.
+1. **Scenario creation:** Users configure scenarios through the frontend, which are validated and stored by the backend.
+2. **Data loading and preprocessing:** The MILP pipeline retrieves scenario information and source data, validates the inputs and prepares the model parameters.
+3. **Optimisation:** The Pyomo model solves the source allocation and treatment optimisation problem.
+4. **Postprocessing:** Solver outputs are validated, structured and stored in the database.
+5. **Results and analysis:** The backend provides results to the frontend, with AI-assisted interpretation planned as an additional component.
 
-- Clone the repo and make your changes locally within your team's folder
-- We are **not** merging into `main` every week. Once everyone on your team has finished their part for a given phase, create a new branch, push all changes to that branch, and a Pull Request will be opened for review at the end of the trimester
-- Keep documentation (`Documentation.md`, `timeline.md`, etc.) inside your team's folder up to date as you go, not just at the end
-- Never commit sensitive data: API keys, credentials, connection strings, or `.env` files. Each folder should have its own `.gitignore` where relevant. If sensitive data is accidentally committed, flag it immediately rather than just deleting it, since it may still exist in git history
+The system is under active development, and some functionality remains to be implemented or integrated.
+
+## Contributing
+
+Development takes place in the main repository, Chameleon-company/Aqua-Blend, using feature branches and pull requests into master.
+
+For the branch workflow, contribution rules and review requirements, see:
+
+- [Contributing Guidelines](.github/CONTRIBUTING.md)
+- [Review Guidelines](.github/REVIEW_GUIDELINES.md)
 
 ## Contact
 
-Mentor: Saeedeh Javadi
 Product Owner: Dr Atabak Elmi
+Mentor: Saeedeh Javadi
 
 ---
-
-**One important rule for everyone:** only make changes inside the folder your team owns. If something in another team's folder needs to change, don't edit it directly, raise it with that team instead so they can make the change themselves. This keeps ownership clear and avoids conflicting or accidental edits across teams.
