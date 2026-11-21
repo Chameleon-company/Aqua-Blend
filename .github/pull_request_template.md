@@ -2,11 +2,9 @@
 
 ## Summary
 
-<!-- What problem does this solve, and why this way? One to three sentences. -->
+<!-- What does this PR change, and why? Keep it to 1–3 sentences. -->
 
-<!-- Link your sprint planner task here.-->
-
-[Planner task](link-to-planner-task)
+<!-- If applicable, link your sprint planner task here.-->
 
 ## Before opening this, I checked
 
@@ -14,28 +12,34 @@
 - [ ] Existing code doesn't already do this <!-- Search the repo first - can you extend or reuse instead of duplicating? -->
 - [ ] No open PRs touch the same files or fields <!-- If they do, list them below and reach out to the author to coordinate -->
   - Overlaps: <!-- list PR links, or write N/A -->
-- [ ] Changes are consistent with the formulation document and other agreed conventions <!-- formulation doc = the math model; also check naming conventions, directory structure, and other team contracts. If something's inconsistent, update it here or explain why below -->
+- [ ] Changes follow the project's existing conventions, contracts and directory structure.
+- [ ] Changes are consistent with the mathematical formulation or other agreed specifications, where applicable.
+- [ ] The PR targets master in `Chameleon-company/Aqua-Blend`.
 
 ## Running it
 
-<!-- Everything needed from scratch: install, env vars, then the commands
-     to run the code and the tests. Follow your own steps once before posting. -->
+<!-- Provide the commands needed to run and test your changes, including any relevant setup instructions. Use N/A if no commands are required. -->
 
 ```zsh
-# e.g.
-pip install -r requirements.txt
-python -m src.model
+# Add setup and execution commands here
 ```
 
-- [ ] Tests pass from the repository root and from another directory
+- [ ] I have checked that the instructions above work.
+- [ ] Relevant existing tests pass.
 - [ ] Nothing committed that should not be: no .env, credentials, generated or solver output files
 
 ## Testing
 
-What do the tests verify, not just that they pass? What is not covered?
+<!-- What did you test, and what do the tests actually verify? Include relevant edge cases or scenarios. If tests weren't run, explain why. -->
 
-<!-- Good: "an out-of-limit blend returns Infeasible"
+<!-- Good: "an out-of-limit water blend returns Infeasible"
      Weak: "the function returns a float" -->
+
+**Tests performed:**
+
+**Results:**
+
+**Not covered / known limitations:**
 
 ## Note for the reviewer
 

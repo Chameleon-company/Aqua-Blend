@@ -1,83 +1,123 @@
-# Contributing to AquaBlend (MILP Stream)
+# Contributing to AquaBlend
 
-This repository is our team's fork. All our work happens here. We do **not** push to the
-original repo until the end of the trimester. Every change is made through a pull request
-(PR) into **this fork**.
+This is the main AquaBlend repository, shared by all project teams. All changes should be made on a separate branch and merged into master through a pull request (PR) after review and approval. **Do not push changes directly to master.**
 
 ## Rules
 
-- You are a **collaborator** on this one fork. Do not make your own fork.
-- **Make all changes inside the `MILP/` folder.** Do not edit files at the repo root or
-  anywhere outside `MILP/` (the root files, such as this one, are team-process files only).
-  Keeping our work in one folder is what lets it merge cleanly into the main project at the
-  end of the trimester.
-- Never push commits straight to `main`. The only way changes reach `main` is through a
-  pull request that gets **2 approvals** and is then merged.
-- When you open that pull request, point it at **this fork**
-  (base repository = `ksuraev/Aqua-Blend-MILP-Team`), not the original upstream repo — see
-  the warning in step 3.
+- Work in the main repository. Do not create a separate fork for your changes.
+- Keep MILP implementation and testing changes inside the MILP/ folder. Changes to shared files, integration components or team-process documentation should be coordinated with the relevant team members.
+- Create a separate branch for each task or related set of changes.
+- Never push commits directly to master.
+- Every PR requires 2 approvals before merging.
+- All PRs must target master in Chameleon-company/Aqua-Blend.
 
 ## Setup (once)
 
-Clone this fork and enter it:
+Clone the main repository:
 
 ```bash
-git clone https://github.com/ksuraev/Aqua-Blend-MILP-Team.git
-cd Aqua-Blend-MILP-Team
+git clone https://github.com/Chameleon-company/Aqua-Blend.git
+cd Aqua-Blend
+```
+
+Check that your remote points to the main repository:
+
+```bash
+git remote -v
 ```
 
 ## Making a change
 
-**1. Create a branch off main**
+**1. Create a branch from master**
+
+Make sure your local master branch is up to date:
 
 ```bash
-git checkout main
-git pull
+git checkout master
+git pull origin master
 git checkout -b feature/short-description
 ```
 
-Name branches `feature/...`, `fix/...`, or `docs/...`. Keep each branch to one small change.
+Use the following naming conventions:
 
-**2. Commit and push**
+- feature/... — New functionality
+- fix/... — Bug fixes
+- docs/... — Documentation changes
+- test/... — Testing improvements
+
+Keep each branch focused on one task or related set of changes.
+
+For example, feature/milp-treatment-stages or docs/update-contributing.
+
+**2. Make your changes, commit and push**
+
+Work on your branch and commit your changes:
 
 ```bash
-git add -A
+git add .
 git commit -m "Short, clear message"
 git push -u origin feature/short-description
 ```
 
+Stage only the files relevant to your task.
+
+Once your branch has been pushed, subsequent changes can be pushed using:
+
+```bash
+git push
+```
+
 **3. Open a pull request**
 
-- On GitHub, go to this fork and click **Pull requests > New pull request**.
-- **Important:** the "base repository" box defaults to the original repo. Change it to
-  `ksuraev/Aqua-Blend-MILP-Team` (this fork). Set **base = main**, **compare = your branch**.
-- GitHub will auto-fill the description with our
-  [PR template](.github/pull_request_template.md) — fill it out, don't delete it.
+1. Open the main AquaBlend repository.
+2. Select **Pull requests → New pull request**.
+3. Check the branch selection:
+   - **Base repository:** `Chameleon-company/Aqua-Blend`
+   - **Base branch:** `master`
+   - **Compare branch:** Your feature branch
+4. Complete the PR template.
+5. Request two reviewers.
 
-**4. Get it merged**
+Do not open a pull request directly from master or against an old team fork.
 
-- Wait for **2 approvals** and for all comments to be resolved.
-- Click **Squash and merge**, then delete the branch.
+**4. Review and merge**
 
-You cannot approve your own PR, so ask or wait for two teammates (usually leads) to review.
+Every PR requires 2 approvals.
 
-Ideally we want the reviewer 1 to do a detailed check and reviewer 2 to do a quick check. If you are a reviewer, try to switch between these two roles.
+Before merging:
+
+- Address review comments and resolve discussions.
+- Make sure required tests and checks pass.
+- Obtain both approvals.
+- Check that the PR targets master.
+
+Delete the feature branch after merging.
 
 ## Keeping your branch up to date
 
-If `main` changes while your PR is open:
+If master changes while you're working, update your branch:
 
 ```bash
 git checkout feature/short-description
 git fetch origin
-git merge origin/main
+git merge origin/master
+```
+
+Resolve any merge conflicts, then push:
+
+```bash
 git push
 ```
 
+For active PRs, make sure your branch includes the latest relevant changes from master before merging.
+
 ## Do not
 
-- Do not make your own fork.
-- Do not push directly to `main`.
-- Do not open a PR against the original repo (not until the end of the trimester).
-- Do not force-push `main`.
-- Do not merge your own PR without 2 approvals.
+Do not create individual forks for team development.
+
+- Do not push directly to master.
+- Do not make unrelated changes in the same PR.
+- Do not modify another stream's files without coordinating with that team.
+- Do not force-push to master.
+- Do not merge a PR without 2 approvals.
+- Do not delete or overwrite another contributor's work.
