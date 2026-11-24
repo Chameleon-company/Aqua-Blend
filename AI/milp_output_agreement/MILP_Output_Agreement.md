@@ -111,8 +111,8 @@ Whatever replaces the T2 explanation code should read v1 directly and apply this
 |---|---|
 | `MILP_Output_Agreement.md` | This document |
 | `presentation_rules.json` | Every output field with its category (`present`, `evidence`, `technical`, `internal`) and mode (`always`, `valid`) |
-| `presentation_gate.py` | `gate_mode(output)` and `presentable_values(output)`. Standard library only |
-| `test_presentation_rules.py` | 9 tests. Two of them are drift checks that fail if the MILP output gains or loses a field the rules do not cover |
+| `presentation_gate.py` | `gate_mode(output)`, `presentable_values(output)` and `is_presentable(path, value, mode, record)` for checking one field. Standard library only |
+| `test_presentation_rules.py` | 18 tests. Two of them are drift checks that fail if the MILP output gains or loses a field the rules do not cover |
 | `fixtures/feasible.json`, `fixtures/infeasible.json` | Real outputs from `master` at `1bd6ff6` |
 | `fixtures/output_contract_v1.json` | Copy of the contract template, so the drift check also covers it |
 | `make_fixtures.py` | Regenerates the two fixtures from `MILP/` |

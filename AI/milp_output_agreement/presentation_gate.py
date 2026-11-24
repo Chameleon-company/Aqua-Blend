@@ -7,6 +7,8 @@ Reads presentation_rules.json and answers two questions for one MILP output
 - gate_mode(output): NO_SOLUTION, INVALID_OUTPUT or VALID
 - presentable_values(output): every (path, value) the explanation layer may
   show to users and quote as a figure in that mode
+- is_presentable(path, value, mode, record): the same decision for one field,
+  for code that reads specific fields (Task 38 template, Task 46 LLM facts)
 
 Tasks 38 (template fallback) and 48 (LLM number verification) can use
 presentable_values() as their list of allowed figures instead of each
@@ -76,27 +78,41 @@ def _condition_holds(condition: str | None, record: dict[str, Any] | None) -> bo
     return record is not None and str(record.get(field)) == expected
 
 
+def is_presentable(
+    path: str,
+    value: Any,
+    mode: str,
+    record: dict[str, Any] | None = None,
+    rules: dict[str, Any] | None = None,
+) -> bool:
+    """True if this one field may be shown to users in this gate mode.
+
+    path uses the rules' notation, e.g. "sources[].withdrawal_ml_per_day".
+    record is the dict the field belongs to; it is needed for conditional
+    rules such as quality model_min/model_max (only when transform is identity).
+    """
+    rules = rules or load_rules()
+    rule = rules["fields"].get(path)
+    if rule is None or rule["use"] != "present":
+        return False
+    if not _condition_holds(rule.get("condition"), record):
+        return False
+    if rule["when"] == "valid" and mode != VALID:
+        # Exclusion is decided before solving, so it is a fact in every mode.
+        return path == "sources[].selection_status" and value == "EXCLUDED"
+    return True
+
+
 def presentable_values(
     output: dict[str, Any], rules: dict[str, Any] | None = None
 ) -> list[tuple[str, Any]]:
     rules = rules or load_rules()
-    fields = rules["fields"]
     mode = gate_mode(output)
-    allowed: list[tuple[str, Any]] = []
-
-    for path, value, record in leaf_paths(output):
-        rule = fields.get(path)
-        if rule is None or rule["use"] != "present":
-            continue
-        if not _condition_holds(rule.get("condition"), record):
-            continue
-        if rule["when"] == "valid" and mode != VALID:
-            # Exclusion is decided before solving, so it is a fact in every mode.
-            if not (path == "sources[].selection_status" and value == "EXCLUDED"):
-                continue
-        allowed.append((path, value))
-
-    return allowed
+    return [
+        (path, value)
+        for path, value, record in leaf_paths(output)
+        if is_presentable(path, value, mode, record, rules)
+    ]
 
 
 if __name__ == "__main__":

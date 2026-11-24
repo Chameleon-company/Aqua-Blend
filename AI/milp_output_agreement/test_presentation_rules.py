@@ -16,6 +16,7 @@ from presentation_gate import (
     NO_SOLUTION,
     VALID,
     gate_mode,
+    is_presentable,
     leaf_paths,
     load_rules,
     presentable_values,
@@ -113,3 +114,21 @@ def test_feasible_run_allows_reported_quality_but_not_ph_model_limits():
 @pytest.mark.parametrize("path", ["sources[].decision_evidence.unit_cost_rank", "schema_version"])
 def test_evidence_and_internal_fields_are_never_presentable(path):
     assert path not in {p for p, _ in presentable_values(FEASIBLE, RULES)}
+
+
+@pytest.mark.parametrize(
+    "path, value, mode, record, expected",
+    [
+        ("summary.costs.total_cost", 533000.0, VALID, None, True),
+        ("summary.costs.total_cost", 0.0, NO_SOLUTION, None, False),
+        ("summary.total_demand_ml_per_day", 1200.0, NO_SOLUTION, None, True),
+        ("sources[].selection_status", "EXCLUDED", NO_SOLUTION, None, True),
+        ("sources[].selection_status", "SELECTED", NO_SOLUTION, None, False),
+        ("quality.plant_inflow[].parameters[].model_max", 5.0, VALID, {"transform": "identity"}, True),
+        ("quality.plant_inflow[].parameters[].model_max", 316.23, VALID, {"transform": "ph_to_hydrogen_ion"}, False),
+        ("sources[].decision_evidence.unit_cost_rank", 1, VALID, None, False),
+        ("not.a.field", 1, VALID, None, False),
+    ],
+)
+def test_is_presentable_single_field(path, value, mode, record, expected):
+    assert is_presentable(path, value, mode, record, RULES) is expected
