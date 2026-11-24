@@ -1,0 +1,78 @@
+{
+  "template_version": "0.1",
+  "about": "The only hard-coded explanation template for AquaBlend (backlog Task 38). Placeholders in {braces} are filled by fill_template.py from the MILP output (only fields the Task 45 agreement allows) and the scenario input. Change wording here, not in the script.",
+
+  "solver_status_labels": {
+    "optimal": "optimal",
+    "feasible": "feasible but not proven optimal",
+    "infeasible": "infeasible: no blend meets every constraint",
+    "unbounded": "unbounded",
+    "time_limit": "stopped at its time limit",
+    "error": "stopped with an error"
+  },
+
+  "VALID": {
+    "title": "{scenario_name}: blending result",
+    "headline_optimal": "The optimal blend for {scenario_name} delivers {total_delivered} ML/day against a demand of {total_demand} ML/day, at a total cost of {total_cost}.",
+    "headline_not_optimal": "A feasible blend (not proven optimal) for {scenario_name} delivers {total_delivered} ML/day against a demand of {total_demand} ML/day, at a total cost of {total_cost}.",
+    "sources": {
+      "heading": "Sources ({selected_count} of {source_count} used)",
+      "SELECTED": "{name} ({source_id}): {withdrawal} ML/day, {blend_percent}% of the blend, {utilisation}% of its maximum withdrawal",
+      "NOT_SELECTED": "{name} ({source_id}): not used",
+      "UNUSED": "{name} ({source_id}): not used",
+      "EXCLUDED": "{name} ({source_id}): excluded before solving"
+    },
+    "plants": {
+      "heading": "Treatment plants ({active_plant_count} active)",
+      "active": "{name}: {throughput} ML/day, {utilisation}% of its capacity",
+      "inactive": "{name}: not used"
+    },
+    "zones": {
+      "heading": "Demand zones",
+      "met": "{name}: {delivered} of {demand} ML/day delivered (demand met)",
+      "met_no_demand": "{name}: {delivered} ML/day delivered (demand met)",
+      "short": "{name}: {delivered} of {demand} ML/day delivered, a shortfall of {unmet} ML/day",
+      "short_no_demand": "{name}: {delivered} ML/day delivered, a shortfall of {unmet} ML/day"
+    },
+    "costs": {
+      "heading": "Costs",
+      "text": "Total cost {total_cost}: source fixed {source_fixed}, source variable {source_variable}, plant fixed {plant_fixed}, plant variable {plant_variable}."
+    },
+    "quality": {
+      "heading": "Blended water entering {plant_name}, before treatment",
+      "with_limits": "{parameter}: {value}{unit} (limits {min} to {max}), {status}",
+      "no_limits": "{parameter}: {value}{unit}, {status}",
+      "within": "within limits",
+      "outside": "OUTSIDE limits"
+    },
+    "binding": {
+      "heading": "Constraints at their limits"
+    },
+    "caveats": [
+      "Costs are in the model's cost units. No currency is set in the model output.",
+      "Water-quality figures describe the blended water entering the plant, before any treatment."
+    ],
+    "caveat_dosing_off": "Chemical dosing is turned off in this scenario, so no dosing or chemical costs are included."
+  },
+
+  "NO_SOLUTION": {
+    "title": "{scenario_name}: no valid solution",
+    "headline": "No valid solution was found for {scenario_name}.",
+    "text": "The solver result was {solver_status_label}. The scenario asks for {total_demand} ML/day across {zone_count} demand zone(s), from {source_count} source(s).",
+    "no_figures": "No costs, flows or water-quality figures are shown, because without a valid solution they do not describe a real plan.",
+    "excluded_heading": "Sources excluded before solving",
+    "excluded_item": "{name} ({source_id})",
+    "caveats": [
+      "The model output does not say which constraint made the scenario impossible to solve."
+    ]
+  },
+
+  "INVALID_OUTPUT": {
+    "title": "{scenario_name}: result not usable",
+    "headline": "The result for {scenario_name} failed its internal checks and should not be used.",
+    "text": "The solver result was {solver_status_label}, but the output did not pass the MILP pipeline's consistency checks, so no figures are shown.",
+    "caveats": [
+      "Ask the Optimisation team to look at this run before using it."
+    ]
+  }
+}
