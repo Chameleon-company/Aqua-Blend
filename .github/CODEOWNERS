@@ -1,0 +1,5 @@
+# TODO: Create GitHub teams for each project stream and assign
+# reviewers based on the files and directories modified in the PR.
+
+# For now, automatically request reviews from both AquaBlend teams.
+* @Chameleon-company/aquablend-maintain @Chameleon-company/aquablend-write
