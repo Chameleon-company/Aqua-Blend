@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "properties": {
+    "headline": {
+      "type": "string",
+      "description": "One sentence stating the result of the run."
+    },
+    "summary": {
+      "type": "string",
+      "description": "Two to four plain-language sentences for a water operator."
+    },
+    "key_figures": {
+      "type": "array",
+      "description": "Up to six figures copied exactly from the facts.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {"type": "string"},
+          "value": {"type": "number"},
+          "unit": {"type": "string"},
+          "fact_path": {
+            "type": "string",
+            "description": "Where the value is in the facts, e.g. summary.costs.total_cost or sources[source_id=225103].withdrawal_ml_per_day"
+          }
+        },
+        "required": ["label", "value", "unit", "fact_path"],
+        "additionalProperties": false
+      }
+    },
+    "caveats": {
+      "type": "array",
+      "description": "Limits the reader should know about, taken from the rules. May be empty.",
+      "items": {"type": "string"}
+    }
+  },
+  "required": ["headline", "summary", "key_figures", "caveats"],
+  "additionalProperties": false
+}
