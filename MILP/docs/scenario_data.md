@@ -274,6 +274,8 @@ SourceInput(
 | `maximum_processing_capacity_ml_per_day` | `float \| None` | Maximum daily processing capacity. | `plant_max_throughput[plant_id]` | Required for preprocessing and must be at least the minimum. |
 | `fixed_activation_cost` | `float` | Cost incurred when the plant is activated. | `plant_fixed_cost[plant_id]` | Must be finite and non-negative. |
 | `treatment_cost_per_ml` | `float` | Variable treatment cost per ML processed. | `plant_unit_treatment_cost[plant_id]` | Must be finite and non-negative. |
+| `removal_processes` | `tuple[RemovalProcessInput, ...]` | Enabled removal processes in flow order \(\mathcal{R}_t\), each with its fixed cost \(F_{tr}\) and per-parameter `acts_on` effects \(H_{trp}\), \(C_{trp}\). | Removal parameters (not yet used by preprocessing) | Optional, default `()`. Not validated yet. |
+| `inlet_limits` | `dict[str, InletLimitInput]` | Inlet limits \(\underline{I}_{tp}, \overline{I}_{tp}\) keyed by raw quality parameter id, in raw units. | Inlet-treatability bounds (not yet used by preprocessing) | Optional, default `{}`. A missing parameter has no plant-specific limit. |
 
 ## 7.3 Formulation mapping
 
