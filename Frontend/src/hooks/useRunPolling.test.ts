@@ -279,7 +279,7 @@ describe("useRunPolling (Task 59: run status tracking)", () => {
   // describe the intended behaviour and are marked `it.fails` until the hook
   // is changed to chained setTimeout, as hooks/useRunAggregate.ts already does.
   // Once fixed, remove `.fails` and they should pass.
-  it.fails("does not start a new request while the previous one is still in flight", async () => {
+  it("does not start a new request while the previous one is still in flight", async () => {
     let resolveFirst: ((value: RunAggregateDto) => void) | undefined;
     mockedGetRunAggregate.mockReturnValueOnce(
       new Promise<RunAggregateDto>((resolve) => {
@@ -300,7 +300,7 @@ describe("useRunPolling (Task 59: run status tracking)", () => {
     });
   });
 
-  it.fails("does not leave a finished run showing an out-of-date status after a slow response", async () => {
+  it("does not leave a finished run showing an out-of-date status after a slow response", async () => {
     let resolveSlow: ((value: RunAggregateDto) => void) | undefined;
     mockedGetRunAggregate
       // The first request (on mount) is slow and comes back with an older status.

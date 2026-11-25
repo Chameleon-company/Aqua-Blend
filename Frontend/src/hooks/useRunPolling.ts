@@ -90,15 +90,7 @@ export function useRunPolling(runId: string): UseRunPollingResult {
   const [diagnostics, setDiagnostics] = useState<DiagnosticsResult | undefined>(undefined);
   const [diagnosticsError, setDiagnosticsError] = useState<AppError | undefined>(undefined);
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fetchedTerminalDataRef = useRef(false);
-
-  const stopPolling = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
 
   const applyTerminalData = useCallback(
     (aggregate: RunAggregateDto) => {
@@ -137,6 +129,11 @@ export function useRunPolling(runId: string): UseRunPollingResult {
 
   useEffect(() => {
     let cancelled = false;
+    // Chained setTimeout (not setInterval), matching hooks/useRunAggregate.ts:
+    // the next poll is only scheduled after the current response arrives, so
+    // requests never overlap and an older, slower response can never arrive
+    // after (and overwrite) a newer terminal status.
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     fetchedTerminalDataRef.current = false;
 
     async function poll() {
@@ -147,23 +144,22 @@ export function useRunPolling(runId: string): UseRunPollingResult {
         setLoading(false);
         setError(undefined);
         if (isTerminalWorkflowStatus(aggregate.run.status)) {
-          stopPolling();
           applyTerminalData(aggregate);
+        } else {
+          timeoutId = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch (err) {
         if (cancelled) return;
-        stopPolling();
         setLoading(false);
         setError(toAppError(err));
       }
     }
 
     void poll();
-    intervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;
-      stopPolling();
+      if (timeoutId) clearTimeout(timeoutId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runId]);
