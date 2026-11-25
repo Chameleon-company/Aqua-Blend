@@ -18,6 +18,9 @@ The source data is one of two things. `data_source.type: "supabase"` reads a Sup
 | $C_t$                             | this file       | `network.plants[].treatment_cost_per_ml`                                                    |
 | $\underline{V}_t$                 | this file       | `network.plants[].minimum_processing_capacity_ml_per_day`                                   |
 | $\overline{V}_t$                  | this file       | `network.plants[].maximum_processing_capacity_ml_per_day`                                   |
+| $\mathcal{R}_t$, $F_{tr}$ | this file | `network.plants[].removal_processes[]` (list order = flow order), `.fixed_cost_per_day` |
+| $H_{trp}$, $C_{trp}$ | this file | `network.plants[].removal_processes[].acts_on.<p>.max_removal_fraction` / `.unit_cost` |
+| $\underline{I}_{tp}, \overline{I}_{tp}$ | this file | `network.plants[].inlet_limits.<p>.min` / `.max` |
 | $\overline{L}_{st}$               | this file       | `network.source_to_plant_links[].maximum_flow_ml_per_day`                                   |
 | $\overline{L}_{tz}$               | this file       | `network.plant_to_zone_links[].maximum_flow_ml_per_day`                                     |
 | $\underline{Q}_p, \overline{Q}_p$ | this file       | `quality_limits.parameters.<p>.min` / `.max`                                                |
@@ -56,7 +59,7 @@ The source data is one of two things. `data_source.type: "supabase"` reads a Sup
 | `sources`        | array  | **yes**  | Selection list. See §3.3.                                                                       |
 | `network`        | object | **yes**  | See §3.4–3.6.                                                                                   |
 | `quality_limits` | object | **yes**  | Must be an object; its _shape_ is not checked by the loader. See §3.7.                          |
-| `treatment`      | object | no       | Defaults to `{}`. Carried through to `ScenarioData.treatment` and otherwise unused.             |
+| `treatment`      | object | no       | Defaults to `{}`. Ignored by the loader; plant treatment data is in `network.plants[]` (§3.4).             |
 
 ### 3.2 `data_source` and `validation`
 
@@ -92,6 +95,8 @@ The source data is one of two things. `data_source.type: "supabase"` reads a Sup
 | `maximum_processing_capacity_ml_per_day` | number or null | no       | $\overline{V}_t$. `null` is accepted by the loader and means unbounded, which the model should reject.                                                                                                                                                                                                                                                                                                                                  |
 | `fixed_activation_cost`                  | number         | no       | $F_t$, defaults to `0`. `0` is correct for the toy case, where the single plant is always on and its fixed cost is a constant the objective drops.                                                                                                                                                                                                                                                                                      |
 | `treatment_cost_per_ml`                  | number         | no       | $C_t$, defaults to `0`. Charged on inflow $\sum_s b_{st}$. Chemical and energy costs fold into this one rate — the formulation has no separate dosing or energy term.                                                                                                                                                                                                                                                                   |
+| `removal_processes` | array | no | Default `[]`. Removal processes installed at the plant, in the order water flows through them ($\mathcal{R}_t$). Each item: `process_id` (string); `enabled` (boolean, default `true`, disabled items are dropped); `fixed_cost_per_day` ($F_{tr}$, AUD/day); `acts_on`, an object keyed by quality parameter id whose values hold `max_removal_fraction` ($H_{trp}$, 0–1) and `unit_cost` ($C_{trp}$, AUD per unit of $p$ · ML). $\mathcal{R}_{tp}$ is the processes whose `acts_on` contains $p$, in list order. Not validated by the loader yet. |
+| `inlet_limits` | object | no | Default `{}`. Keyed by quality parameter id; each value is `{"min": ..., "max": ...}` in the parameter's raw unit ($\underline{I}_{tp}, \overline{I}_{tp}$; pH in pH units). A parameter left out has no plant-specific limit. Not validated by the loader yet. |
 
 ### 3.5 `network.demand_zones[]` — $z \in \mathcal{Z}$
 

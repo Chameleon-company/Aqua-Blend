@@ -46,7 +46,26 @@
         "minimum_processing_capacity_ml_per_day": 0,
         "maximum_processing_capacity_ml_per_day": 600,
         "fixed_activation_cost": 0.0,
-        "treatment_cost_per_ml": 64
+        "treatment_cost_per_ml": 64,
+        "removal_processes": [
+          {
+            "process_id": "sedimentation",
+            "fixed_cost_per_day": 100.0,
+            "acts_on": {
+              "turbidity": { "max_removal_fraction": 0.5, "unit_cost": 0.1 }
+            }
+          },
+          {
+            "process_id": "filtration",
+            "fixed_cost_per_day": 150.0,
+            "acts_on": {
+              "turbidity": { "max_removal_fraction": 0.6, "unit_cost": 0.2 }
+            }
+          }
+        ],
+        "inlet_limits": {
+          "turbidity": { "min": 0.0, "max": 12.0 }
+        }
       }
     ],
     "demand_zones": [
