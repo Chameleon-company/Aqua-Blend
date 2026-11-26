@@ -123,7 +123,7 @@ The source data is one of two things. `data_source.type: "supabase"` reads a Sup
 |---|---|---|
 | `parameters.<p>.id` | string | Required stable lowercase identifier. Must be identical to `<p>`, for example `ph`, `alkalinity`, or `turbidity`. |
 | `parameters.<p>.name` | string | Required human-readable display name, for example `pH`, `Alkalinity`, or `Turbidity`. It must not be used as a join key. |
-| `applies_to` | string | `"blend_at_plant_inflow"`. Records where the limit binds — see §6, this is not the same as the regulatory post-treatment limit. |
+| `applies_to` | string | `"plant_outlet"`. $\underline{Q}_p, \overline{Q}_p$ are regulatory limits on treated water leaving each plant (formulation eq. 22). Plant inlet limits $\underline{I}_{tp}, \overline{I}_{tp}$ (eq. 10) are `network.plants[].inlet_limits` (§3.4). A label only: the loader doesn't read it, and `model.py` still applies $Q_p$ to the inflow blend until the treatment constraints are implemented. |
 | `parameters.<p>.unit` | string | Unit of the limits and of the database's representative value. |
 | `parameters.<p>.min` | number | $\underline{Q}_p$. Use a value the blend cannot realistically breach (e.g. `0`) when only an upper limit is regulated. |
 | `parameters.<p>.max` | number | $\overline{Q}_p \ge$ `min`. |

@@ -106,7 +106,7 @@
     ]
   },
   "quality_limits": {
-  "applies_to": "blend_at_plant_inflow",
+  "applies_to": "plant_outlet",
   "parameters": {
     "ph": {
       "id": "ph",
