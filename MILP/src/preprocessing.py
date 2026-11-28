@@ -99,24 +99,16 @@ class ModelParameters:
     # R_t: plant -> removal process ids in flow order.
     removal_processes_by_plant: dict[str, tuple[str, ...]] = field(default_factory=dict)
     # R_tp: (plant, p) -> ids of the processes acting on p, in flow order.
-    removal_process_order: dict[tuple[str, str], tuple[str, ...]] = field(
-        default_factory=dict
-    )
+    removal_process_order: dict[tuple[str, str], tuple[str, ...]] = field(default_factory=dict)
     # (plant, process, p) -> position of the process in R_tp, starting at 1.
     removal_stage_index: dict[tuple[str, str, str], int] = field(default_factory=dict)
     # n_tp: (plant, p) -> number of processes acting on p.
     removal_stage_count: dict[tuple[str, str], int] = field(default_factory=dict)
     # I_tp lower and upper bounds: (plant, p), in model units.
-    inlet_quality_lb: dict[tuple[str, str], float] = field(
-        default_factory=dict
-    )
-    inlet_quality_ub: dict[tuple[str, str], float] = field(
-        default_factory=dict
-    )
+    inlet_quality_lb: dict[tuple[str, str], float] = field(default_factory=dict)
+    inlet_quality_ub: dict[tuple[str, str], float] = field(default_factory=dict)
     # H_trp: (plant, process, p) -> maximum fraction of the arriving load removed.
-    removal_max_fraction: dict[tuple[str, str, str], float] = field(
-        default_factory=dict
-    )
+    removal_max_fraction: dict[tuple[str, str, str], float] = field(default_factory=dict)
     # F_tr: (plant, process) -> fixed daily operating cost.
     removal_fixed_cost: dict[tuple[str, str], float] = field(default_factory=dict)
     # C_trp: (plant, process, p) -> cost per unit of load removed.
