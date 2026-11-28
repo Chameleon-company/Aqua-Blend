@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
 
+from src.contracts import InletLimitInput, RemovalEffectInput, RemovalProcessInput
 from src.data_loader import load_scenario
 from src.preprocessing import preprocess_scenario, PreprocessingError
 
@@ -190,3 +191,95 @@ def test_ph_transformation_is_correct(toy_scenario, toy_parameters):
             actual = toy_parameters.source_quality[(source.source_id, ph_parameter)]
 
             assert actual == pytest.approx(expected)
+
+
+# REMOVAL PROCESSES AND INLET LIMITS
+
+
+PH = "hydrogen_ion_concentration_nmol_l"
+
+@pytest.fixture
+def two_plant_parameters(toy_scenario):
+    """facility_1: sedimentation -> filtration with inlet limits; Plant2: filtration, Thomson only."""
+    toy_plant = toy_scenario.plants[0]
+    plant1 = replace(
+        toy_plant,
+        removal_processes=(
+            RemovalProcessInput("sedimentation", 100.0, {"turbidity": RemovalEffectInput(0.5, 0.10)}),
+            RemovalProcessInput("filtration", 150.0, {"turbidity": RemovalEffectInput(0.6, 0.20)}),
+        ),
+        inlet_limits={"turbidity": InletLimitInput(0.0, 12.0), "pH": InletLimitInput(6.0, 9.0)},
+    )
+    plant2 = replace(
+        toy_plant,
+        plant_id="Plant2",
+        removal_processes=(
+            RemovalProcessInput("filtration", 120.0, {"turbidity": RemovalEffectInput(0.7, 0.15)}),
+        ),
+    )
+    thomson_link = next(l for l in toy_scenario.source_to_plant_links if l.source_id == "225103")
+    zone_link = toy_scenario.plant_to_zone_links[0]
+    scenario = replace(
+        toy_scenario,
+        plants=(plant1, plant2),
+        source_to_plant_links=toy_scenario.source_to_plant_links + (replace(thomson_link, plant_id="Plant2"),),
+        plant_to_zone_links=toy_scenario.plant_to_zone_links + (replace(zone_link, plant_id="Plant2"),),
+    )
+    return preprocess_scenario(scenario)
+
+
+def test_removal_parameters_follow_process_order(two_plant_parameters):
+    """R_t, R_tp, stage indices, n_tp, H_trp, F_tr, and C_trp come from the listed process order."""
+    p = two_plant_parameters
+    assert p.removal_processes_by_plant == {
+        "facility_1": ("sedimentation", "filtration"),
+        "Plant2": ("filtration",),
+    }
+    assert p.removal_process_order["facility_1", "turbidity"] == ("sedimentation", "filtration")
+    assert p.removal_process_order["facility_1", "alkalinity"] == ()
+    assert p.removal_process_order["Plant2", "turbidity"] == ("filtration",)
+    assert p.removal_stage_index == {
+        ("facility_1", "sedimentation", "turbidity"): 1,
+        ("facility_1", "filtration", "turbidity"): 2,
+        ("Plant2", "filtration", "turbidity"): 1,
+    }
+    assert p.removal_stage_count["facility_1", "turbidity"] == 2
+    assert p.removal_stage_count["facility_1", PH] == 0
+    assert p.removal_stage_count["Plant2", "turbidity"] == 1
+    assert p.removal_max_fraction == {
+        ("facility_1", "sedimentation", "turbidity"): 0.5,
+        ("facility_1", "filtration", "turbidity"): 0.6,
+        ("Plant2", "filtration", "turbidity"): 0.7,
+    }
+    assert p.removal_fixed_cost == {
+        ("facility_1", "sedimentation"): 100.0,
+        ("facility_1", "filtration"): 150.0,
+        ("Plant2", "filtration"): 120.0,
+    }
+    assert p.removal_unit_cost == {
+        ("facility_1", "sedimentation", "turbidity"): 0.10,
+        ("facility_1", "filtration", "turbidity"): 0.20,
+        ("Plant2", "filtration", "turbidity"): 0.15,
+    }
+
+
+def test_inlet_limits_are_converted_or_neutral(two_plant_parameters):
+    """Given limits use model units (pH -> [H+], swapped); missing ones get neutral bounds."""
+    lb, ub = two_plant_parameters.inlet_quality_lb, two_plant_parameters.inlet_quality_ub
+    # Given limits.
+    assert (lb["facility_1", "turbidity"], ub["facility_1", "turbidity"]) == (0.0, 12.0)
+    assert lb["facility_1", PH] == pytest.approx(1.0)  # pH 9 -> 1 nmol/L
+    assert ub["facility_1", PH] == pytest.approx(1000.0)  # pH 6 -> 1000 nmol/L
+    # Neutral bounds: 0 and the largest value among linked sources (toy alkalinity 50, 70, 40).
+    assert (lb["facility_1", "alkalinity"], ub["facility_1", "alkalinity"]) == (0.0, 70.0)
+    assert (lb["Plant2", "alkalinity"], ub["Plant2", "alkalinity"]) == (0.0, 50.0)  # Thomson only
+    assert ub["Plant2", PH] == pytest.approx(10 ** (9 - 7.2))  # Thomson pH 7.2
+
+
+def test_scenario_without_treatment_data(toy_parameters):
+    """No treatment data gives empty sequences and no removal coefficients."""
+    assert set(toy_parameters.removal_stage_count.values()) == {0}
+    assert toy_parameters.removal_stage_index == {}
+    assert toy_parameters.removal_max_fraction == {}
+    assert toy_parameters.removal_fixed_cost == {}
+    assert toy_parameters.removal_unit_cost == {}
