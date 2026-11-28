@@ -64,6 +64,8 @@
           }
         ],
         "inlet_limits": {
+          "ph": { "min": 6.0, "max": 9.0 },
+          "alkalinity": { "min": 10.0, "max": 200.0 },
           "turbidity": { "min": 0.0, "max": 12.0 }
         }
       }
