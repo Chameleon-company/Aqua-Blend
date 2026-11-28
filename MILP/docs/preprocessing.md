@@ -192,6 +192,24 @@ Warnings may describe issues such as a source not being marked `model_ready` in 
 
 Warnings are informational. Blocking problems raise `PreprocessingError` before a `ModelParameters` object is returned.
 
+### 3.8 Removal-process and inlet-limit parameters
+
+Built by `_build_removal_parameters` from `PlantInput.removal_processes` and `PlantInput.inlet_limits`.
+
+| Field | Type | Formulation notation | Meaning |
+| --- | --- | --- | --- |
+| `removal_processes_by_plant` | `dict[str, tuple[str, ...]]` | \(\mathcal{R}\_t\) | Process ids at each plant, in flow order. |
+| `removal_process_order` | `dict[tuple[str, str], tuple[str, ...]]` | \(\mathcal{R}\_{tp}\) | Processes acting on \(p\), in flow order; empty if none. |
+| `removal_stage_index` | `dict[tuple[str, str, str], int]` | stage \(i\) | Position of process \(r\) in \(\mathcal{R}\_{tp}\), starting at 1. |
+| `removal_stage_count` | `dict[tuple[str, str], int]` | \(n\_{tp}\) | Number of processes acting on \(p\) at the plant. |
+| `inlet_quality_lb` | `dict[tuple[str, str], float]` | \(\underline{I}\_{tp}\) | Lower inlet bound in model units; 0 when the plant has no limit. |
+| `inlet_quality_ub` | `dict[tuple[str, str], float]` | \(\overline{I}\_{tp}\) | Upper inlet bound in model units; the largest linked \(Q\_{sp}\) when the plant has no limit. |
+| `removal_max_fraction` | `dict[tuple[str, str, str], float]` | \(H\_{trp}\) | Maximum fraction of the arriving load removed. |
+| `removal_fixed_cost` | `dict[tuple[str, str], float]` | \(F\_{tr}\) | Fixed daily cost of operating the process. |
+| `removal_unit_cost` | `dict[tuple[str, str, str], float]` | \(C\_{trp}\) | Cost per unit of load removed. |
+
+`removal_process_order`, `removal_stage_count` and both inlet bounds have an entry for every (plant, \(p\)); the other three only where a process acts on \(p\).
+
 ---
 
 ## 4. Formal contract invariants

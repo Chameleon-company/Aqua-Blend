@@ -276,8 +276,8 @@ SourceInput(
 | `maximum_processing_capacity_ml_per_day` | `float \| None` | Maximum daily processing capacity. | `plant_max_throughput[plant_id]` | Required for preprocessing and must be at least the minimum. |
 | `fixed_activation_cost` | `float` | Cost incurred when the plant is activated. | `plant_fixed_cost[plant_id]` | Must be finite and non-negative. |
 | `treatment_cost_per_ml` | `float` | Variable treatment cost per ML processed. | `plant_unit_treatment_cost[plant_id]` | Must be finite and non-negative. |
-| `removal_processes` | `tuple[RemovalProcessInput, ...]` | Enabled removal processes in flow order \(\mathcal{R}_t\), each with its fixed cost \(F_{tr}\) and per-parameter `acts_on` effects \(H_{trp}\), \(C_{trp}\). | Removal parameters (not yet used by preprocessing) | Optional, default `()`. Not validated yet. |
-| `inlet_limits` | `dict[str, InletLimitInput]` | Inlet limits \(\underline{I}_{tp}, \overline{I}_{tp}\) keyed by raw quality parameter id, in raw units. | Inlet-treatability bounds (not yet used by preprocessing) | Optional, default `{}`. A missing parameter has no plant-specific limit. |
+| `removal_processes` | `tuple[RemovalProcessInput, ...]` | Enabled removal processes in flow order \(\mathcal{R}_t\), each with its fixed cost \(F_{tr}\) and per-parameter `acts_on` effects \(H_{trp}\), \(C_{trp}\). | `removal_*` fields | Optional, default `()`. Not validated yet. |
+| `inlet_limits` | `dict[str, InletLimitInput]` | Inlet limits \(\underline{I}_{tp}, \overline{I}_{tp}\) keyed by raw quality parameter id, in raw units. | `inlet_quality_lb`, `inlet_quality_ub` | Optional, default `{}`. A missing parameter has no plant-specific limit. |
 
 ## 7.3 Formulation mapping
 
@@ -288,6 +288,9 @@ SourceInput(
 | `maximum_processing_capacity_ml_per_day` | `plant_max_throughput` | \(\overline{V}_t\) |
 | `fixed_activation_cost` | `plant_fixed_cost` | \(F_t\) |
 | `treatment_cost_per_ml` | `plant_unit_treatment_cost` | \(C_t\) |
+| `removal_processes` (list order) | `removal_processes_by_plant`, `removal_process_order`, `removal_stage_index`, `removal_stage_count` | \(\mathcal{R}_t\), \(\mathcal{R}_{tp}\), stage \(i\), \(n_{tp}\) |
+| `removal_processes[].fixed_cost_per_day`, `.acts_on` | `removal_fixed_cost`, `removal_max_fraction`, `removal_unit_cost` | \(F_{tr}\), \(H_{trp}\), \(C_{trp}\) |
+| `inlet_limits` | `inlet_quality_lb`, `inlet_quality_ub` | \(\underline{I}_{tp}, \overline{I}_{tp}\); neutral bounds when a parameter is missing |
 
 ## 7.4 Example
 
