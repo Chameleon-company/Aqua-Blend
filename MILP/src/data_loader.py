@@ -13,10 +13,13 @@ try:
     # Package import used when the module is imported through src.
     from .contracts import (
         DemandZoneInput,
+        InletLimitInput,
         InputValidationPolicy,
         LoaderValidation,
         PlantInput,
         PlantZoneLinkInput,
+        RemovalEffectInput,
+        RemovalProcessInput,
         ScenarioData,
         SourceInput,
         SourcePlantLinkInput,
@@ -25,10 +28,13 @@ try:
 except ImportError:  # pragma: no cover - supports direct script execution.
     from contracts import (
         DemandZoneInput,
+        InletLimitInput,
         InputValidationPolicy,
         LoaderValidation,
         PlantInput,
         PlantZoneLinkInput,
+        RemovalEffectInput,
+        RemovalProcessInput,
         ScenarioData,
         SourceInput,
         SourcePlantLinkInput,
@@ -894,6 +900,22 @@ def _build_network(
                 maximum_processing_capacity_ml_per_day=maximum_capacity,
                 fixed_activation_cost=fixed_cost,
                 treatment_cost_per_ml=treatment_cost,
+                removal_processes=tuple(
+                    RemovalProcessInput(
+                        process_id=process["process_id"],
+                        fixed_cost_per_day=process["fixed_cost_per_day"],
+                        acts_on={
+                            parameter_id: RemovalEffectInput(**effect)
+                            for parameter_id, effect in process["acts_on"].items()
+                        },
+                    )
+                    for process in item.get("removal_processes", [])
+                    if process.get("enabled", True)
+                ),
+                inlet_limits={
+                    parameter_id: InletLimitInput(limit["min"], limit["max"])
+                    for parameter_id, limit in item.get("inlet_limits", {}).items()
+                },
             )
         )
 

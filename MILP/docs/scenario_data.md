@@ -21,7 +21,7 @@ Scenario JSON + Supabase
       ModelParameters
           |
           v
-     constraints.py
+     model.py
 ```
 
 `ScenarioData` is the boundary between external data sources and the mathematical model. It is not a database schema, JSON schema, PuLP model, solver result, or reporting object.
@@ -69,7 +69,9 @@ The contract does not contain:
 - Solver configuration or output
 - Optimised flows or activation decisions
 - Model-specific transformed quality values
-- Unimplemented treatment, dosing or batching configuration
+- Chemical dosing or batching configuration (not implemented yet)
+
+Plant removal processes and inlet limits are included, in `PlantInput` (§7).
 
 A value should only enter this contract when it is a real scenario input with a defined loader source, validation rule and downstream use.
 
@@ -274,6 +276,8 @@ SourceInput(
 | `maximum_processing_capacity_ml_per_day` | `float \| None` | Maximum daily processing capacity. | `plant_max_throughput[plant_id]` | Required for preprocessing and must be at least the minimum. |
 | `fixed_activation_cost` | `float` | Cost incurred when the plant is activated. | `plant_fixed_cost[plant_id]` | Must be finite and non-negative. |
 | `treatment_cost_per_ml` | `float` | Variable treatment cost per ML processed. | `plant_unit_treatment_cost[plant_id]` | Must be finite and non-negative. |
+| `removal_processes` | `tuple[RemovalProcessInput, ...]` | Enabled removal processes in flow order \(\mathcal{R}_t\), each with its fixed cost \(F_{tr}\) and per-parameter `acts_on` effects \(H_{trp}\), \(C_{trp}\). | Removal parameters (not yet used by preprocessing) | Optional, default `()`. Not validated yet. |
+| `inlet_limits` | `dict[str, InletLimitInput]` | Inlet limits \(\underline{I}_{tp}, \overline{I}_{tp}\) keyed by raw quality parameter id, in raw units. | Inlet-treatability bounds (not yet used by preprocessing) | Optional, default `{}`. A missing parameter has no plant-specific limit. |
 
 ## 7.3 Formulation mapping
 
@@ -296,6 +300,21 @@ PlantInput(
     maximum_processing_capacity_ml_per_day=1680.0,
     fixed_activation_cost=250.0,
     treatment_cost_per_ml=0.10,
+    removal_processes=(
+        RemovalProcessInput(
+            process_id="sedimentation",
+            fixed_cost_per_day=100.0,
+            acts_on={"turbidity": RemovalEffectInput(max_removal_fraction=0.5, unit_cost=0.1)},
+        ),
+        RemovalProcessInput(
+            process_id="filtration",
+            fixed_cost_per_day=150.0,
+            acts_on={"turbidity": RemovalEffectInput(max_removal_fraction=0.6, unit_cost=0.2)},
+        ),
+    ),
+    inlet_limits={
+        "turbidity": InletLimitInput(minimum=0.0, maximum=12.0)
+    },
 )
 ```
 
@@ -423,7 +442,7 @@ parameters = preprocess_scenario(scenario)
 | `validation_issues` | `tuple[str, ...]` | Blocking loader issues. | Controls readiness and strict preprocessing | Empty means no blocking loader issues. |
 | `is_ready` | computed property | Convenience readiness result. | CLI summaries and gating | True only when `validation_issues` is empty. |
 
-An unused `treatment` dictionary is intentionally excluded. Treatment, dosing or batching inputs should only be added after their mathematical variables, parameters and constraints are approved.
+There is no `treatment` dictionary: plant-level removal processes and inlet limits are carried by `PlantInput` (§7). Chemical dosing or batching inputs should only be added after their mathematical variables, parameters and constraints are approved.
 
 ---
 

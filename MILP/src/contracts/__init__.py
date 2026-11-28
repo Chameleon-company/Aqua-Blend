@@ -2,8 +2,11 @@
 
 from .scenario_data import (
     DemandZoneInput,
+    InletLimitInput,
     PlantInput,
     PlantZoneLinkInput,
+    RemovalEffectInput,
+    RemovalProcessInput,
     ScenarioData,
     SourceInput,
     SourcePlantLinkInput,
@@ -41,6 +44,7 @@ __all__ = [
     "DemandZoneResult",
     "FlowResult",
     "InflowQualityPlantResult",
+    "InletLimitInput",
     "InputScenario",
     "InputValidationPolicy",
     "LoaderValidation",
@@ -52,6 +56,8 @@ __all__ = [
     "PreprocessingValidation",
     "QualityParameterResult",
     "QualityResult",
+    "RemovalEffectInput",
+    "RemovalProcessInput",
     "ScenarioData",
     "SolutionValidation",
     "SolvedScenario",

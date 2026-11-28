@@ -11,7 +11,12 @@ from typing import Any
 
 import pytest
 
-from src.contracts import InputValidationPolicy, LoaderValidation
+from src.contracts import (
+    InletLimitInput,
+    InputValidationPolicy,
+    LoaderValidation,
+    RemovalEffectInput,
+)
 from src.data_loader import DataLoadError, load_scenario
 
 # A minimal, internally-consistent inline scenario: one source, one plant,
@@ -559,3 +564,48 @@ def test_negative_plant_zone_transfer_cost_soft_fails(tmp_path: Path) -> None:
         ).passed
         is False
     )
+
+
+def test_plant_without_treatment_data_gets_empty_defaults(tmp_path: Path) -> None:
+    """Scenarios without treatment data still load unchanged."""
+    plant = load_scenario(_write(tmp_path, _config()), strict=True).plants[0]
+
+    assert plant.removal_processes == ()
+    assert plant.inlet_limits == {}
+
+
+def test_plant_treatment_data_loads_in_flow_order(tmp_path: Path) -> None:
+    """Removal processes keep their listed order and disabled ones are dropped."""
+    config = _config()
+    plant_config = config["network"]["plants"][0]
+    plant_config["removal_processes"] = [
+        {
+            "process_id": "sedimentation",
+            "fixed_cost_per_day": 100.0,
+            "acts_on": {"turbidity": {"max_removal_fraction": 0.5, "unit_cost": 0.1}},
+        },
+        {
+            "process_id": "uv",
+            "enabled": False,
+            "fixed_cost_per_day": 50.0,
+            "acts_on": {},
+        },
+        {
+            "process_id": "filtration",
+            "fixed_cost_per_day": 150.0,
+            "acts_on": {"turbidity": {"max_removal_fraction": 0.6, "unit_cost": 0.2}},
+        },
+    ]
+    plant_config["inlet_limits"] = {"turbidity": {"min": 0.0, "max": 12.0}}
+
+    plant = load_scenario(_write(tmp_path, config), strict=True).plants[0]
+
+    assert [r.process_id for r in plant.removal_processes] == [
+        "sedimentation",
+        "filtration",
+    ]
+    assert plant.removal_processes[1].fixed_cost_per_day == 150.0
+    assert plant.removal_processes[1].acts_on == {
+        "turbidity": RemovalEffectInput(0.6, 0.2)
+    }
+    assert plant.inlet_limits == {"turbidity": InletLimitInput(0.0, 12.0)}
