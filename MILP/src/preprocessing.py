@@ -95,7 +95,7 @@ class ModelParameters:
     warnings: tuple[str, ...]
 
     # Removal processes and plant inlet limits. Quality keys use model parameter
-    # ids, as in source_quality. Empty means the scenario has no treatment data.
+    # ids, as in source_quality. Empty only when built directly, e.g. in unit tests.
     # R_t: plant -> removal process ids in flow order.
     removal_processes_by_plant: dict[str, tuple[str, ...]] = field(default_factory=dict)
     # R_tp: (plant, p) -> ids of the processes acting on p, in flow order.
@@ -716,6 +716,80 @@ def _build_link_parameters(
     )
 
 
+def _build_removal_parameters(
+    scenario: ScenarioData,
+    plant_ids: tuple[str, ...],
+    quality_rules: tuple[_QualityRule, ...],
+    source_quality: dict[tuple[str, str], float],
+    source_plant_capacity: dict[tuple[str, str], float],
+) -> dict[str, Any]:
+    """Build the removal-process and inlet-limit fields of ModelParameters.
+
+    Section and equation numbers refer to MILP/docs/formulation.pdf.
+    R_tp is R_t filtered to the processes whose acts_on contains p, in flow order.
+    A parameter without an inlet limit gets the formulation's neutral bounds, i.e.
+    [0, the largest Q_sp] among sources with a positive-capacity arc to the plant.
+    """
+    plants = {plant.plant_id: plant for plant in scenario.plants}
+    by_plant, order, stage_index, stage_count = {}, {}, {}, {}
+    inlet_lb, inlet_ub, max_fraction, fixed_cost, unit_cost = {}, {}, {}, {}, {}
+
+    for t in plant_ids:
+        processes = plants[t].removal_processes
+        # R_t: processes installed at plant t, in flow order
+        by_plant[t] = tuple(r.process_id for r in processes)
+        for r in processes:
+            # F_tr: fixed daily cost in objective function
+            fixed_cost[t, r.process_id] = r.fixed_cost_per_day
+
+        for rule in quality_rules:
+            p = rule.model_name
+            # R_tp: processes acting on p, ordered as in R_t.
+            sequence = [r for r in processes if rule.raw_name in r.acts_on]
+            # order[t, p] is removal process order
+            order[t, p] = tuple(r.process_id for r in sequence)
+            # stage_count[t, p] is n_tp = |R_tp|
+            stage_count[t, p] = len(sequence)
+            # Stage i = 1..n_tp is process r_i; stage 0 is the inflow load
+            for i, r in enumerate(sequence, start=1):
+                effect = r.acts_on[rule.raw_name]
+                stage_index[t, r.process_id, p] = i
+                # H_trp: removal capability and activation
+                max_fraction[t, r.process_id, p] = effect.max_removal_fraction
+                # C_trp: removal cost per unit of load in objective function
+                unit_cost[t, r.process_id, p] = effect.unit_cost
+
+            # I_tp lower/upper: inlet treatability allowance
+            limit = plants[t].inlet_limits.get(rule.raw_name)
+            if limit is None:
+                # Neutral bounds when the plant has no limit on p:
+                # [0, max_S {Q_sp: L_st_ub > 0}]
+                linked = [
+                    source_quality[s, p]
+                    for (s, plant_id), capacity in source_plant_capacity.items()
+                    if plant_id == t and capacity > 0
+                ]
+                inlet_lb[t, p], inlet_ub[t, p] = 0.0, max(linked, default=0.0)
+            else:
+                label = f"Plant '{t}' inlet limit for '{rule.raw_name}'"
+                low = _transform_quality_value(rule, limit.minimum, f"{label} minimum")
+                high = _transform_quality_value(rule, limit.maximum, f"{label} maximum")
+                # Same scale as Q_sp: pH limits become [H+] and swap order.
+                inlet_lb[t, p], inlet_ub[t, p] = min(low, high), max(low, high)
+
+    return {
+        "removal_processes_by_plant": by_plant,
+        "removal_process_order": order,
+        "removal_stage_index": stage_index,
+        "removal_stage_count": stage_count,
+        "inlet_quality_lb": inlet_lb,
+        "inlet_quality_ub": inlet_ub,
+        "removal_max_fraction": max_fraction,
+        "removal_fixed_cost": fixed_cost,
+        "removal_unit_cost": unit_cost,
+    }
+
+
 def _validate_capacity_feasibility(parameters: ModelParameters) -> None:
     """Reject networks that cannot route all demand before quality is applied."""
     total_demand = sum(parameters.demand_by_zone.values())
@@ -952,6 +1026,9 @@ def preprocess_scenario(
         quality_lower_bound=quality_lower,
         quality_upper_bound=quality_upper,
         quality_units=quality_units,
+        **_build_removal_parameters(
+            scenario, plant_ids, quality_rules, source_quality, source_plant_capacity
+        ),
         warnings=tuple(warnings),
         # This temporary value is replaced after the readiness checks below.
         preprocessing_validation=PreprocessingValidation(
